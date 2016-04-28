@@ -1,219 +1,222 @@
-var http = require('http');
-var Accessory, Service, Characteristic, UUIDGen;
+/*jslint node: true */
+"use strict";
 
-module.exports = function(homebridge) {
-  console.log("homebridge API version: " + homebridge.version);
+var Service, Characteristic;
+var request = require('request');
+var rp = require('request-promise');
+var logmore = false; //false for less; true for more
 
-  // Accessory must be created from PlatformAccessory Constructor
-  Accessory = homebridge.platformAccessory;
 
-  // Service and Characteristic are from hap-nodejs
-  Service = homebridge.hap.Service;
-  Characteristic = homebridge.hap.Characteristic;
-  UUIDGen = homebridge.hap.uuid;
-  
-  // For platform plugin to be considered as dynamic platform plugin,
-  // registerPlatform(pluginName, platformName, constructor, dynamic), dynamic must be true
-  homebridge.registerPlatform("homebridge-samplePlatform", "SamplePlatform", SamplePlatform, true);
+module.exports = function (homebridge) {
+    Service = homebridge.hap.Service;
+    Characteristic = homebridge.hap.Characteristic;
+    homebridge.registerAccessory("homebridge-luxor", "Luxor", LuxorAccessory);
+};
+
+
+function LuxorAccessory(log, config) {
+    this.log = log;
+    this.name = config["name"] || this.name;
+    this.service = config["service"] || "Lights"; // how is this used??? 
+    this.groupName = config["groupName"] || this.name; // fallback to "name" if you didn't specify an exact "bulb_name" --> should be able to set this automatically, but how to bind it afterwards? 
+    this.groupNumber = config["groupNumber"] || 1; //Luxor group numbers start at 1
+    this.ip_addr = config["ipAddr"]; //mandatory
+    this.controller = "not set yet"; //optional, will probably remove as we can get this programatically.  Maybe set to name?
+    this.binaryState = 0; // on/off state, default is OFF (and brightness will be 0)
+    this.brightness = 0; //brightness (0-100), 0 is default and also if 0 then binarystate also 0.
+    this.device = null; //will be instance of lightbulb that we control.
+    this.log("Starting a Luxor device with name '" + this.name + "'... accessories to be verified soon");
+
+    this.search();
 }
 
-// Platform constructor
-// config may be null
-// api may be null if launched from old homebridge version
-function SamplePlatform(log, config, api) {
-  console.log("SamplePlatform Init");
-  this.log = log;
-  this.config = config;
-  this.accessories = [];
+LuxorAccessory.prototype.search = function () {
+    // if (!this.ip_addr) {
+    //    throw new Error(this.Name + " needs an IP Address in the config file.  Please see sample_config.json.");
+    //}
+    this.log("Starting search for controller at: " + this.ip_addr);
 
-  this.requestServer = http.createServer(function(request, response) {
-    if (request.url === "/add") {
-      this.addAccessory();
-      response.writeHead(204);
-      response.end();
-    }
+    //Search for controllor and make sure we can find it
+    var post_options = {
+        "url": 'http://' + this.ip_addr + '/ControllerName.json',
+        "method": "POST"
+    };
 
-    if (request.url == "/reachability") {
-      this.updateAccessoriesReachability();
-      response.writeHead(204);
-      response.end();
-    }
+    var that = this;
+    rp.post(post_options, function (err, response, body) {
+        if (!err && response.statusCode == 200) {
+            var info = JSON.parse(body);
+            that.controller = info["Controller"];
+            that.log('Found Controller name: ' + info["Controller"]);
+        } else {
+            throw new Error(that.Name + " was not able to connect to connect to the controller.  Check your IP Address.");
+        }
 
-    if (request.url == "/remove") {
-      this.removeAccessory();
-      response.writeHead(204);
-      response.end();
-    }
-  }.bind(this));
-
-  this.requestServer.listen(18081, function() {
-    console.log("Server Listening...");
-  });
-
-  if (api) {
-      // Save the API object as plugin needs to register new accessory via this object.
-      this.api = api;
-
-      // Listen to event "didFinishLaunching", this means homebridge already finished loading cached accessories
-      // Platform Plugin should only register new accessory that doesn't exist in homebridge after this event.
-      // Or start discover new accessories
-      this.api.on('didFinishLaunching', function() {
-        console.log("Plugin - DidFinishLaunching");
-      }.bind(this));
-  }
-}
-
-// Function invoked when homebridge tries to restore cached accessory
-// Developer can configure accessory at here (like setup event handler)
-// Update current value
-SamplePlatform.prototype.configureAccessory = function(accessory) {
-  console.log("Plugin - Configure Accessory: " + accessory.displayName);
-
-  // set the accessory to reachable if plugin can currently process the accessory
-  // otherwise set to false and update the reachability later by invoking 
-  // accessory.updateReachability()
-  accessory.reachable = true;
-
-  accessory.on('identify', function(paired, callback) {
-    console.log("Identify!!!");
-    callback();
-  });
-
-  if (accessory.getService(Service.Lightbulb)) {
-    accessory.getService(Service.Lightbulb)
-    .getCharacteristic(Characteristic.On)
-    .on('set', function(value, callback) {
-      console.log("Light -> " + value);
-      callback();
+    }).then(function (body) {
+        //Retrieve list of Groups and extract lights
+        that.groupListGet();
     });
-  }
-
-  this.accessories.push(accessory);
 }
 
-//Handler will be invoked when user try to config your plugin
-//Callback can be cached and invoke when nessary
-SamplePlatform.prototype.configurationRequestHandler = function(context, request, callback) {
-  console.log("Context: ", JSON.stringify(context));
-  console.log("Request: ", JSON.stringify(request));
-
-  // Check the request response
-  if (request && request.response && request.response.inputs && request.response.inputs.name) {
-    this.addAccessory(request.response.inputs.name);
-
-    // Invoke callback with config will let homebridge save the new config into config.json
-    // Callback = function(response, type, replace, config)
-    // set "type" to platform if the plugin is trying to modify platforms section
-    // set "replace" to true will let homebridge replace existing config in config.json
-    // "config" is the data platform trying to save
-    callback(null, "platform", true, {"platform":"SamplePlatform", "otherConfig":"SomeData"});
-    return;
-  }
-
-  // - UI Type: Input
-  // Can be used to request input from user
-  // User response can be retrieved from request.response.inputs next time
-  // when configurationRequestHandler being invoked
-
-  var respDict = {
-    "type": "Interface",
-    "interface": "input",
-    "title": "Add Accessory",
-    "items": [
-      {
-        "id": "name",
-        "title": "Name",
-        "placeholder": "Fancy Light"
-      }//, 
-      // {
-      //   "id": "pw",
-      //   "title": "Password",
-      //   "secure": true
-      // }
-    ]
-  }
-
-  // - UI Type: List
-  // Can be used to ask user to select something from the list
-  // User response can be retrieved from request.response.selections next time
-  // when configurationRequestHandler being invoked
-
-  // var respDict = {
-  //   "type": "Interface",
-  //   "interface": "list",
-  //   "title": "Select Something",
-  //   "allowMultipleSelection": true,
-  //   "items": [
-  //     "A","B","C"
-  //   ]
-  // }
-
-  // - UI Type: Instruction
-  // Can be used to ask user to do something (other than text input)
-  // Hero image is base64 encoded image data. Not really sure the maximum length HomeKit allows.
-
-  // var respDict = {
-  //   "type": "Interface",
-  //   "interface": "instruction",
-  //   "title": "Almost There",
-  //   "detail": "Please press the button on the bridge to finish the setup.",
-  //   "heroImage": "base64 image data",
-  //   "showActivityIndicator": true,
-  // "showNextButton": true,
-  // "buttonText": "Login in browser",
-  // "actionURL": "https://google.com"
-  // }
-
-  // Plugin can set context to allow it track setup process
-  context.ts = "Hello";
-
-  //invoke callback to update setup UI
-  callback(respDict);
+LuxorAccessory.prototype.getPowerOn = function (callback) {
+    if (logmore) {
+        this.log("In getPowerOn")
+    };
+    this.binaryState = this.groupListGet() > 0 ? 1 : 0;
+    this.log("Power state for the '%s' is %s", this.groupName, this.binaryState);
+    callback(null, this.binaryState);
 }
 
-// Sample function to show how developer can add accessory dynamically from outside event
-SamplePlatform.prototype.addAccessory = function(accessoryName) {
-  console.log("Add Accessory");
-  var uuid;
+LuxorAccessory.prototype.setPowerOn = function (powerOn, callback) {
+    if (logmore) {
+        this.log("In setPowerOn")
+    };
+    this.binaryState = powerOn ? 1 : 0;
+    this.brightness = this.illuminateGroup(this.binaryState * 50); //set to 0 if we want to turn off, or 50 if we want to turn on.
+    this.log("Set power state on the '%s' to %s", this.groupName, this.binaryState);
+    callback(null);
 
-  if (!accessoryName) {
-    accessoryName = "Test Accessory"
-  }
-
-  uuid = UUIDGen.generate(accessoryName);
-
-  var newAccessory = new Accessory(accessoryName, uuid);
-  newAccessory.on('identify', function(paired, callback) {
-    console.log("Identify!!!");
-    callback();
-  });
-  // Plugin can save context on accessory
-  // To help restore accessory in configureAccessory()
-  // newAccessory.context.something = "Something"
-
-  newAccessory.addService(Service.Lightbulb, "Test Light")
-  .getCharacteristic(Characteristic.On)
-  .on('set', function(value, callback) {
-    console.log("Light -> " + value);
-    callback();
-  });
-
-  this.accessories.push(newAccessory);
-  this.api.registerPlatformAccessories("homebridge-samplePlatform", "SamplePlatform", [newAccessory]);
 }
 
-SamplePlatform.prototype.updateAccessoriesReachability = function() {
-  console.log("Update Reachability");
-  for (var index in this.accessories) {
-    var accessory = this.accessories[index];
-    accessory.updateReachability(false);
-  }
+LuxorAccessory.prototype.getBrightness = function (callback) {
+    if (logmore) {
+        this.log("In getBrightness")
+    };
+    //below returns the brightness before the call is finished resulting in the last brightness returned
+    this.brightness = this.groupListGet();
+    this.log("Get Brightness for the '%s' is %s", this.groupName, this.brightness);
+    callback(null, this.brightness);
 }
 
-// Sample function to show how developer can remove accessory dynamically from outside event
-SamplePlatform.prototype.removeAccessory = function() {
-  console.log("Remove Accessory");
-  this.api.unregisterPlatformAccessories("homebridge-samplePlatform", "SamplePlatform", this.accessories);
+LuxorAccessory.prototype.setBrightness = function (brightness, callback) {
+    if (logmore) {
+        this.log("In setBrightness")
+    };
+    this.brightness = this.illuminateGroup(brightness);
+    this.binaryState = this.brightness > 0 ? 1 : 0;
+    this.log("Set Brightness for the '%s' to %s", this.groupName, this.brightness);
+    callback(null);
 
-  this.accessories = [];
 }
+
+
+LuxorAccessory.prototype.getServices = function () {
+    var lightbulbService = new Service.Lightbulb(this.groupName);
+    if (logmore) {
+        this.log("Setting services for: " + this.groupName)
+    };
+
+    lightbulbService.getCharacteristic(Characteristic.On)
+        .on('get', this.getPowerOn.bind(this))
+        .on('set', this.setPowerOn.bind(this));
+
+    lightbulbService.getCharacteristic(Characteristic.Brightness)
+        .on('set', this.setBrightness.bind(this))
+        .on('get', this.getBrightness.bind(this))
+
+    return [lightbulbService];
+}
+
+
+function getStatus(result) {
+
+    switch (result) {
+    case 0:
+        return ('Ok'); //StatusOk
+    case (1):
+        return ('Unknown Method'); //StatusUnknownMethod
+    case (101):
+        return ('Unparseable Request'); //StatusUnparseableRequest
+    case (102):
+        return ('Invalid Request'); //StatusInvalidRequest
+    case (201):
+        return ('Precondition Failed'); //StatusPreconditionFailed
+    case (202):
+        return ('Group Name In Use'); //StatusGroupNameInUse
+    case (205):
+        return ('Group Number In Use'); //StatusGroupNumberInUse
+    case (243):
+        return ('Theme Index Out Of Range'); //StatusThemeIndexOutOfRange
+    default:
+        return ('Unknown status');
+    }
+}
+
+LuxorAccessory.prototype.illuminateGroup = function (desiredIntensity) {
+    var that = this;
+    if (logmore) {
+        that.log('Setting light ' + that.groupName + ' to intensity ' + desiredIntensity)
+    };
+
+    var requestData = JSON.stringify({
+        'GroupNumber': that.groupNumber,
+        'Intensity': desiredIntensity
+    });
+    var result;
+    request({
+            url: 'http://' + that.ip_addr + '/IlluminateGroup.json',
+            method: "POST",
+            body: requestData,
+            headers: {
+                'cache-control': 'no-cache',
+                'content-type': 'text/plain',
+                'Content-Length': Buffer.byteLength(requestData)
+            },
+        },
+        function (error, response, body) {
+            if (error) {
+                that.log('Error setting intesity for ' + that.groupName + ': ' + error);
+            }
+            result = getStatus(JSON.parse(body).Status);
+            if (result == "Ok") {
+                that.log('Request to set %s intensity to %s: %s ', that.groupName, desiredIntensity, result);
+                that.brightness = desiredIntensity;
+                that.binaryState = (that.brightness) > 0 ? 1 : 0;
+            } else {
+                that.log('Something went wrong!  Request to set %s intensity to %s: %s ', that.groupName, desiredIntensity, result);
+            }
+        });
+
+    return (result);
+};
+
+LuxorAccessory.prototype.groupListGet = function () {
+    var that = this;
+    if (logmore) {
+        that.log('Retrieving light groups and their current status')
+    };
+
+    var post_options = {
+        url: 'http://' + that.ip_addr + '/GroupListGet.json',
+        method: 'POST'
+
+    };
+
+    rp.post(post_options, function (err, response, body) {
+        if (!err && response.statusCode == 200) {
+            var info = JSON.parse(body);
+            //var arrayindex = that.groupNumber-1;  // arrays start at 0 while luxor numbering starts at 1
+            if (that.groupNumber == info["GroupList"][that.groupNumber - 1].GroupNumber) {
+                that.groupName = info["GroupList"][that.groupNumber - 1].Name;
+                that.brightness = info["GroupList"][that.groupNumber - 1].Intensity;
+                that.binaryState = that.brightness > 0 ? 1 : 0;
+
+            } else {
+                that.log("Could not match group number in config.json to controller groups");
+
+            }
+        } else {
+            throw new Error(that.name + " was not able to connect to connect to the controller.  Check your IP Address. Error: " + err);
+        }
+    })
+
+
+    .then(function (body) {;
+        if (logmore) {
+            that.log('End of groupListGet, result = %s', that.brightness)
+        };
+
+    });
+    return (that.brightness);
+
+};

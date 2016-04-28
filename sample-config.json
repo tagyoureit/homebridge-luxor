@@ -1,0 +1,20 @@
+"accessories": [
+        {
+            "accessory": "Luxor",
+            "name": "Luxor Lights",
+            "groupName": "Pergola Lights",
+            "groupNumber": "1",
+            "ipAddr": "10.0.0.33",
+            "service": "Lights"
+        },
+            {
+            "accessory": "Luxor",
+            "name": "Luxor Lights",
+            "groupName": "Path Lights",
+            "groupNumber": "2",
+            "ipAddr": "10.0.0.33",
+            "service": "Lights"
+        }
+
+    ]
+}
