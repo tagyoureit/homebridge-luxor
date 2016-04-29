@@ -15,7 +15,7 @@ This plug-in enables power and brightness controls for [FX Luminaire Luxor ZD](h
 
 # Known Issues
 1.  Plug-in is written only for the ZD controller (Zoning, Diming).  It may work with the ZDC (Zoning, Dimming, and Color) but I have not tested it (the color selection is not currently coded).  (See #1 in enhancements.)
-2.  When using the app, Program A changes the on/off or brightness, Program B will need to refresh twice to see the changes take effect.  This is because the getBrightness and getPowerOn functions return their values before the http post returns with its data.  
+2.  FIXED ~When using the app, Program A changes the on/off or brightness, Program B will need to refresh twice to see the changes take effect.  This is because the getBrightness and getPowerOn functions return their values before the http post returns with its data.~  
 3.  Refactor code.
 
 
