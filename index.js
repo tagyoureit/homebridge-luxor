@@ -17,23 +17,24 @@ module.exports = function (homebridge) {
 function LuxorAccessory(log, config) {
     this.log = log;
     this.name = config["name"] || this.name;
-    this.service = config["service"] || "Lights"; // how is this used??? 
-    this.groupName = config["groupName"] || this.name; // fallback to "name" if you didn't specify an exact "bulb_name" --> should be able to set this automatically, but how to bind it afterwards? 
+    this.service = "Lights"; // how is this used??? 
+    //this.groupName = config["groupName"] || this.name; // fallback to "name" if you didn't specify an exact "groupName" --> should be able to set this automatically, but how to bind it afterwards? 
+    var groupName;
     this.groupNumber = config["groupNumber"] || 1; //Luxor group numbers start at 1
     this.ip_addr = config["ipAddr"]; //mandatory
-    this.controller = "not set yet"; //optional, will probably remove as we can get this programatically.  Maybe set to name?
-    this.binaryState = 0; // on/off state, default is OFF (and brightness will be 0)
-    this.brightness = 0; //brightness (0-100), 0 is default and also if 0 then binarystate also 0.
+    var controller; //optional, will probably remove as we can get this programatically.  Maybe set to name?
+    var binaryState; // will set programmatically via groupListGet below
+    var brightness; //brightness (0-100), will set programmatically via groupListGet below
     this.device = null; //will be instance of lightbulb that we control.
-    this.log("Starting a Luxor device with name '" + this.name + "'... accessories to be verified soon");
+    this.log("Starting a Luxor light with name %s in %s'", this.groupName, this.name);
 
     this.search();
 }
 
 LuxorAccessory.prototype.search = function () {
-    // if (!this.ip_addr) {
-    //    throw new Error(this.Name + " needs an IP Address in the config file.  Please see sample_config.json.");
-    //}
+    if (!this.ip_addr) {
+        throw new Error(this.Name + " needs an IP Address in the config file.  Please see sample_config.json.");
+    }
     this.log("Starting search for controller at: " + this.ip_addr);
 
     //Search for controllor and make sure we can find it
@@ -52,51 +53,48 @@ LuxorAccessory.prototype.search = function () {
             throw new Error(that.Name + " was not able to connect to connect to the controller.  Check your IP Address.");
         }
 
-    }).then(function (body) {
-        //Retrieve list of Groups and extract lights
-        that.groupListGet();
-    });
+        }).then(function (body) {
+
+            that.groupListGet(null, null, "initial");
+        });
 }
 
 LuxorAccessory.prototype.getPowerOn = function (callback) {
     if (logmore) {
         this.log("In getPowerOn")
     };
-    this.binaryState = this.groupListGet() > 0 ? 1 : 0;
-    this.log("Power state for the '%s' is %s", this.groupName, this.binaryState);
-    callback(null, this.binaryState);
+    this.groupListGet(callback, this.brightness, "power");
+   
 }
 
 LuxorAccessory.prototype.setPowerOn = function (powerOn, callback) {
-    if (logmore) {
-        this.log("In setPowerOn")
-    };
     this.binaryState = powerOn ? 1 : 0;
-    this.brightness = this.illuminateGroup(this.binaryState * 50); //set to 0 if we want to turn off, or 50 if we want to turn on.
-    this.log("Set power state on the '%s' to %s", this.groupName, this.binaryState);
+    this.log("Setting %s to %s (default 50%)", this.groupName, this.binaryState =1 ? "on" : "off" );
+    this.illuminateGroup(this.binaryState * 50); //set to 0 if we want to turn off, or 50 if we want to turn on.
     callback(null);
-
 }
 
 LuxorAccessory.prototype.getBrightness = function (callback) {
     if (logmore) {
         this.log("In getBrightness")
     };
-    //below returns the brightness before the call is finished resulting in the last brightness returned
-    this.brightness = this.groupListGet();
-    this.log("Get Brightness for the '%s' is %s", this.groupName, this.brightness);
-    callback(null, this.brightness);
+    this.groupListGet(callback, this.brightness, "brightness");
 }
 
 LuxorAccessory.prototype.setBrightness = function (brightness, callback) {
     if (logmore) {
         this.log("In setBrightness")
     };
+    /*if (this.brightness = 0) {
+        //update characteristic(on)
+        accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.On)
+        this.getService(Service.Lightbulb).getCharacteristic(Characteristic.On)
+    };*/ //To do...
     this.brightness = this.illuminateGroup(brightness);
     this.binaryState = this.brightness > 0 ? 1 : 0;
     this.log("Set Brightness for the '%s' to %s", this.groupName, this.brightness);
     callback(null);
-
+    
 }
 
 
@@ -180,10 +178,10 @@ LuxorAccessory.prototype.illuminateGroup = function (desiredIntensity) {
     return (result);
 };
 
-LuxorAccessory.prototype.groupListGet = function () {
+LuxorAccessory.prototype.groupListGet = function (callback, brightness, whichcall) {
     var that = this;
     if (logmore) {
-        that.log('Retrieving light groups and their current status')
+        that.log('Retrieving light group' + that.groupName + 'and their current status')
     };
 
     var post_options = {
@@ -213,10 +211,15 @@ LuxorAccessory.prototype.groupListGet = function () {
 
     .then(function (body) {;
         if (logmore) {
-            that.log('End of groupListGet, result = %s', that.brightness)
+            that.log('End of groupListGet, result = %s', that.brightness);
+            that.log('Whichcall = %s', whichcall)
         };
-
+        if (whichcall == "brightness") {
+            callback(null, that.brightness);
+        } else if (whichcall == "power") {
+            callback(null, that.binaryState);
+        } else if (whichcall == "initial") {
+            that.log('Setting initial params');
+        };
     });
-    return (that.brightness);
-
 };
