@@ -69,7 +69,7 @@ LuxorAccessory.prototype.getPowerOn = function (callback) {
 
 LuxorAccessory.prototype.setPowerOn = function (powerOn, callback) {
     this.binaryState = powerOn ? 1 : 0;
-    this.log("Setting %s to %s (default 50%)", this.groupName, this.binaryState =1 ? "on" : "off" );
+    this.log("Setting %s to %s (default 50%)", this.groupName, this.binaryState == 1 ? "on" : "off" );
     this.illuminateGroup(this.binaryState * 50); //set to 0 if we want to turn off, or 50 if we want to turn on.
     callback(null);
 }
