@@ -1,16 +1,6 @@
-    "accessories": [
+    "platforms": [
 
         {
-            "accessory": "Luxor",
-            "name": "Luxor Pergola Lights",
-            "groupNumber": "1",
-            "ipAddr": "10.0.0.33"
-        },
-            {
-            "accessory": "Luxor",
-            "name": "Luxor Path Lights",
-            "groupNumber": "2",
-            "ipAddr": "10.0.0.33"
+            "platform": "Luxor",
+            "ipAddr": "Your IP Address in the form of xxx.xxx.xxx.xxx"
         }
-
-    ]
