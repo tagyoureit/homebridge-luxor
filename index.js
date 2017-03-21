@@ -4,299 +4,252 @@
 
 var Accessory, Characteristic, Service, UUIDGen;
 
-var request = require('request');
-var rp = require('request-promise');
-var logmore = false; //false for less; true for more
 
-module.exports = function (homebridge) {
+var rp = require('request-promise');
+var luxorZDAccessory = require('./luxorZDAccessory.js');
+var Promise = require('bluebird');
+
+
+module.exports = function(homebridge) {
+    // console.log("homebridge API version: " + homebridge.version);
+
+    // Accessory must be created from PlatformAccessory Constructor
     Accessory = homebridge.platformAccessory;
+
+    // Service and Characteristic are from hap-nodejs
     Characteristic = homebridge.hap.Characteristic;
     Service = homebridge.hap.Service;
     UUIDGen = homebridge.hap.uuid;
 
+    // For platform plugin to be considered as dynamic platform plugin,
+    // registerPlatform(pluginName, platformName, constructor, dynamic), dynamic must be true
     homebridge.registerPlatform("homebridge-luxor", "Luxor", LuxorPlatform, true);
 };
 
 function LuxorPlatform(log, config, api) {
-    this.config = config || {};
 
-    this.api = api;
-    this.accessories = {};
-    this.log = log;
-    
-    this.ip_addr = config.ipAddr; 
-    
-    this.search();
+    var self = this;
+    self.Name = 'LuxorPlatform';
+    self.log = log;
+
+    self.config = config || {};
+    // self.accessories = {};
+    self.accessories = [];
+
+    self.ip_addr = config.ipAddr;
+    self.controller = {}; // object to hold controller variables
+    self._tmpControllerLightGroups = []; // temporary storage for light groups retrieve from light controller
+
+    if (api) {
+        // Save the API object as plugin needs to register new accessory via this object.
+        self.api = api;
+
+        // Listen to event "didFinishLaunching", this means homebridge already finished loading cached accessories
+        // Platform Plugin should only register new accessory that doesn't exist in homebridge after this event.
+        // Or start discover new accessories
+        self.api.on('didFinishLaunching', self.didFinishLaunching.bind(this));
+    }
 }
 
-LuxorPlatform.prototype.addAccessory = function(uuid, name, group, brightness) {
-    this.log("Found: %s [Group %d]", name, group);
 
-    var accessory = new Accessory(name, uuid);
-    
-    accessory
-        .getService(Service.AccessoryInformation)
-        .setCharacteristic(Characteristic.Manufacturer, "Luxor");
-        
-    accessory
-        .addService(Service.Lightbulb)
-        .addCharacteristic(Characteristic.Brightness);
-
-    this.accessories[accessory.UUID] = new LuxorAccessory(this.log, accessory, this.ip_addr, group, brightness);
-    this.api.registerPlatformAccessories("homebridge-luxor", "Luxor", [accessory]);
-};
-
-LuxorPlatform.prototype.configureAccessory = function(accessory) {
-    this.accessories[accessory.UUID] = accessory;
-};
-
-LuxorPlatform.prototype.groupListGet = function (callback, whichcall) {
+LuxorPlatform.prototype.getController = function() {
+    // get the name of the controller
     var self = this;
-    if (logmore) {
-        self.log('Retrieving light groups');
+
+    if (Object.keys(self.controller).length !== 0) {
+        self.log.debug(this.Name + ': Already have cached controller:', self.controller);
+        return self.controller;
+    } else {
+        self.log(this.Name + ": Starting search for controller at: " + self.ip_addr);
+
+        //Search for controllor and make sure we can find it
+        var post_options = {
+            "url": 'http://' + this.ip_addr + '/ControllerName.json',
+            "method": "POST"
+        };
+
+
+        return rp.post(post_options)
+            .then(function(body) {
+                var info = JSON.parse(body);
+                self.controller = info.Controller;
+                if (info.Controller.substring(0, 4) === 'luxor') {
+                    self.controllerType = 'ZD'
+                } else {
+                    // "lxzdc"
+                    self.controllerType = 'ZDC'
+                }
+                self.log(self.Name + ': Found Controller named ' + info.Controller);
+                return self.controller;
+            })
+            .catch(function(err) {
+                self.error(this.Name + ' was not able to connect to connect to the controller. ', err);
+            });
     }
+};
+
+LuxorPlatform.prototype.getControllerGroupList = function() {
+    // Get the list of light groups from the controller
+    var self = this;
+    self.log.debug(self.Name + ': Retrieving light groups from controller');
 
     var post_options = {
         url: 'http://' + self.ip_addr + '/GroupListGet.json',
         method: 'POST'
     };
-
-    rp.post(post_options, function (err, response, body) {
-        if (!err && response.statusCode == 200) {
+    return rp(post_options)
+        .then(function(body) {
             var info = JSON.parse(body);
             for (var i in info.GroupList) {
-                var item = info.GroupList[i];
-                var uuid = UUIDGen.generate(item.Name);
-                var accessory = self.accessories[uuid];
-            
-                if (accessory === undefined) {
-                    self.addAccessory(uuid, item.Name, item.GroupNumber, item.Intensity);
-                }
-                else if (accessory instanceof Accessory) {
-                    self.accessories[accessory.UUID] = new LuxorAccessory(self.log, accessory, self.ip_addr, item.GroupNumber, item.Intensity);
-                }
+                self._tmpControllerLightGroups[i] = info.GroupList[i];
             }
-        } else {
-            throw new Error("Was not able to connect to the controller.  Check your IP Address. Error: " + err);
-        }
-    });
-};
-
-LuxorPlatform.prototype.search = function () {
-    if (!this.ip_addr) {
-        throw new Error(this.Name + " needs an IP Address in the config file.  Please see sample_config.json.");
-    }
-    this.log("Starting search for controller at: " + this.ip_addr);
-
-    //Search for controllor and make sure we can find it
-    var post_options = {
-        "url": 'http://' + this.ip_addr + '/ControllerName.json',
-        "method": "POST"
-    };
-
-    var self = this;
-    rp.post(post_options, function (err, response, body) {
-        if (!err && response.statusCode == 200) {
-            var info = JSON.parse(body);
-            self.controller = info.Controller;
-            self.log('Found Controller name: ' + info.Controller);
-        } else {
-            throw new Error(self.accessory.displayName + " was not able to connect to connect to the controller.  Check your IP Address.");
-        }
-
-        }).then(function (body) {
-
-            self.groupListGet();
+            self.log(self.Name + ': Found %s light groups.', Object.keys(info.GroupList).length);
+            return self._tmpControllerLightGroups;
+        })
+        .catch(function(err) {
+            self.log.error(self.Name + ': was not able to retrieve light groups from controller.', err);
         });
 };
 
-function LuxorAccessory(log, accessory, ip_addr, group, brightness) {
+
+LuxorPlatform.prototype.removeAccessory = function(accessory) {
     var self = this;
+    self.log(self.Name + ': Removed accessory %s', accessory.displayName);
 
-    this.accessory = accessory;
-    this.log = log;
-    
-    this.ip_addr = ip_addr;
-    this.groupNumber = group;
-    this.brightness = brightness;
-    this.binaryState = brightness > 0 ? 1 : 0;
+    // remove accessory from Homebridge
+    self.api.unregisterPlatformAccessories("homebridge-luxor", "Luxor", [accessory]);
 
-    this.accessory.on('identify', function(paired, callback) {
-        self.log("%s - identify", self.accessory.displayName);
-        callback();
-    });
-    
-    var service = this.accessory.getService(Service.Lightbulb);
-    
-    service.getCharacteristic(Characteristic.On)
-        .on('get', this.getPowerOn.bind(this))
-        .on('set', this.setPowerOn.bind(this));
-
-    service.getCharacteristic(Characteristic.Brightness)
-        .on('set', this.setBrightness.bind(this))
-        .on('get', this.getBrightness.bind(this));
-}
-
-LuxorAccessory.prototype.getPowerOn = function (callback) {
-    if (logmore) {
-        this.log("In getPowerOn");
+    // loop to remove accessory from self.accessories cache
+    for (var i=0; i<self.accessories.length; i++){
+      if (accessory.displayName===self.accessories[i].accessory.displayName){
+        self.log.debug(self.Name + ': Removing %s from local cache.', accessory.displayName);
+        self.accessories.splice(i,1);
+        break;
+      }
     }
-    this.getCurrentState(callback, "power");
-};
-
-LuxorAccessory.prototype.setPowerOn = function (powerOn, callback) {
-    this.binaryState = powerOn ? 1 : 0;
-    if (logmore){
-        this.log("Attepmting to set Power for the %s to %s", this.accessory.displayName, this.binaryState == 1 ? "on (default 50%)" : "off" );        
-    }
-    this.illuminateGroup(callback,this.binaryState * 50);  //set to 0 if we want to turn off, or 50 if we want to turn on.
-};
-
-LuxorAccessory.prototype.getBrightness = function (callback) {
-    if (logmore) {
-        this.log("In getBrightness");
-    }
-    this.getCurrentState(callback, "brightness");
-};
-
-LuxorAccessory.prototype.setBrightness = function (brightness, callback) {
-    if (logmore) {
-        this.log("Attempting to Set Brightness for the '%s' to %s", this.accessory.displayName, brightness);
-    }
-    this.illuminateGroup(callback, brightness);
+    return;
 };
 
 
-LuxorAccessory.prototype.getServices = function () {
-    var lightbulbService = new Service.Lightbulb(this.accessory.displayName);
-    if (logmore) {
-        this.log("Setting services for: " + this.accessory.displayName);
+
+
+// Function invoked when homebridge tries to restore cached accessory
+// Developer can configure accessory at here (like setup event handler)
+// Update current value
+LuxorPlatform.prototype.configureAccessory = function(accessory) {
+
+    var self = this;
+    self.log.debug(self.Name + ': processing cached accessory %s', accessory.displayName);
+
+    /*  FIRST: ADD ANY CACHED ACCESSORIES    */
+    // In the SECOND step we will remove the accessory if it is no longer valid
+
+    // If the app crashes, it could add the same object to the cache again.
+    // This is just an extra safe guard to ensure we don't have
+    // cached items of the same name.
+    var duplicate = false;
+    // console.log('acc.leng', self.accessories.length)
+    for (var i=0; i<self.accessories.length; i++){
+      // console.log(i + ': ' + self.accessories[i].accessory.displayName)
+      // console.log('match?', accessory.displayName===self.accessories[i].accessory.displayName)
+      if (accessory.displayName===self.accessories[i].accessory.displayName){
+        self.log.debug(self.Name + ': Found duplicate light %s in cache.  Something previously went wrong.', accessory.displayName);
+        this.api.unregisterPlatformAccessories("homebridge-luxor", "Luxor", [accessory]);
+        duplicate = true;
+        return;
+      }
+    }
+    if (duplicate===false) {
+        // accessory has not already been added to self.accessories
+        accessory = new luxorZDAccessory(accessory, self.ip_addr, accessory.context.group, 0, 'cached', self.log, Accessory, Characteristic, Service, UUIDGen);
+        self.accessories.push(accessory);
+        return;
     }
 
-    lightbulbService.getCharacteristic(Characteristic.On)
-        .on('get', this.getPowerOn.bind(this))
-        .on('set', this.setPowerOn.bind(this));
-
-    lightbulbService.getCharacteristic(Characteristic.Brightness)
-        .on('set', this.setBrightness.bind(this))
-        .on('get', this.getBrightness.bind(this));
-
-    return [lightbulbService];
 };
 
+LuxorPlatform.prototype.addAccessory = function() {
+    var self = this;
+    var action = '';
 
-function getStatus(result) {
-    switch (result) {
-        case 0:
-            return ('Ok'); //StatusOk
-        case (1):
-            return ('Unknown Method'); //StatusUnknownMethod
-        case (101):
-            return ('Unparseable Request'); //StatusUnparseableRequest
-        case (102):
-            return ('Invalid Request'); //StatusInvalidRequest
-        case (201):
-            return ('Precondition Failed'); //StatusPreconditionFailed
-        case (202):
-            return ('Group Name In Use'); //StatusGroupNameInUse
-        case (205):
-            return ('Group Number In Use'); //StatusGroupNumberInUse
-        case (243):
-            return ('Theme Index Out Of Range'); //StatusThemeIndexOutOfRange
-        default:
-            return ('Unknown status');
-    }
-}
-LuxorAccessory.prototype.illuminateGroup = function (callback, desiredIntensity) {
-        var self = this;
-        if (logmore) {
-            self.log('Setting light %s (%s) to intensity ', self.accessory.displayName, self.groupNumber, (desiredIntensity == 0 ? "0 (Off)" : desiredIntensity));
-        }
 
-        var requestData = JSON.stringify({
-            'GroupNumber': self.groupNumber,
-            'Intensity': desiredIntensity
-        });
-        var result;
-        rp({
-                url: 'http://' + self.ip_addr + '/IlluminateGroup.json',
-                method: "POST",
-                body: requestData,
-                headers: {
-                    'cache-control': 'no-cache',
-                    'content-type': 'text/plain',
-                    'Content-Length': Buffer.byteLength(requestData)
+    /*  SECOND: IF CACHED ACCESSORIES ARE NOT PART OF CURRENT GROUP, REMOVE THEM    */
+    if (Object.keys(self.accessories).length > 0) {
+        self.accessories.map(function(el) {
+            var found = 0;
+            self.log.debug(self.Name + ': Checking if %s is still a valid (from cache) accessory', el.accessory.displayName);
+            self._tmpControllerLightGroups.map(function(el2) {
+                // console.log('still valid? ', el2.Name === el.accessory.displayName, el2.Name, el.accessory.displayName)
+                if (el2.Name === el.accessory.displayName) {
+                    found = 1;
                 }
-            },
-            function (error, response, body) {
-                if (error) {
-                    self.log('Error setting intesity for ' + self.accessory.displayName + ': ' + error);
-                }
-                result = getStatus(JSON.parse(body).Status);
-                if (result == "Ok") {
-                    self.log('Request to set %s intensity to %s: %s ', self.accessory.displayName, (desiredIntensity == 0 ? "0 (Off)" : desiredIntensity), result);
-                self.brightness = desiredIntensity;
-                self.binaryState = (self.brightness) > 0 ? 1 : 0;
-            } else {
-                self.log('Something went wrong!  Request to set %s intensity to %s: %s ', self.accessory.displayName, desiredIntensity, result);
+            });
+            if (found === 0) {
+                // cached element does NOT exist in current light group
+                self.log(self.Name + ': Removing cached accessory %s', el.accessory.displayName);
+                //self.accessories.splice(el.accessory, 1);
+                //self.api.unregisterPlatformAccessories("homebridge-luxor", "Luxor", [el.accessory]);
+                self.removeAccessory(el.accessory);
             }
-        }).then(function (body) {
-        callback(null);
-    })
-    .catch(function (err) {
-        throw new Error(self.accessory.displayName + " Crash! Error: " + err);
+        });
+    }
+
+    // this.accessories.map(function(el, i) {
+    //     console.log('AFTER removed accessory ' + i + ': ' + el.accessory.displayName)
+    // })
+    /*  THIRD: IF NEW LIGHT GROUPS ARE FOUND, ADD THEM    */
+    self._tmpControllerLightGroups.map(function(el) {
+        self.log.debug(self.Name + ': Checking to see if %s is a new (from controller) accessory.', el.Name);
+        var found = 0;
+        self.accessories.map(function(el2) {
+            // loop through _tmp array for each self.accessories to see if there is a match
+            // if it is not already in the accessories array we will add it
+            // if is in the self.accessories cache then we already know about it and will skip it.
+            if (el.Name === el2.accessory.displayName) {
+                self.log.debug(self.Name + ': ' + el.Name + ' was already added because it is a cached accessory.');
+                found = 1;
+            }
+        });
+
+        if (found === 0) {
+            self.log(self.Name + ': Adding new Luxor light group: ', el.Name);
+            // var item = self._tmpControllerLightGroups[index];
+            var uuid = UUIDGen.generate(el.Name);
+            var accessory = new Accessory(el.Name, uuid);
+            self.accessories.push(new luxorZDAccessory(accessory, self.ip_addr, el.GroupNumber, el.brightness, 'new', self.log, Accessory, Characteristic, Service, UUIDGen));
+            self.api.registerPlatformAccessories("homebridge-luxor", "Luxor", [accessory]);
+        }
     });
 
+
+    self._tmpControllerLightGroups = []; // reset the array
+
+    return;
 
 };
 
-LuxorAccessory.prototype.getCurrentState = function (callback, whichcall) {
+
+LuxorPlatform.prototype.didFinishLaunching = function() {
     var self = this;
-    if (logmore) {
-        self.log('Retrieving current %s of light group %s (%s)', whichcall, self.accessory.displayName, self.groupNumber);
+    var promiseArray = [];
+
+    if (!self.ip_addr) {
+        self.log.error(this.Name + " needs an IP Address in the config file.  Please see sample_config.json.");
     }
-
-    var post_options = {
-        url: 'http://' + self.ip_addr + '/GroupListGet.json',
-        method: 'POST'
-
-    };
-
-    rp(post_options, function (err, response, body) {
-        if (!err && response.statusCode == 200) {
-            var info = JSON.parse(body);
-            //var arrayindex = self.groupNumber-1;  // arrays start at 0 while luxor numbering starts at 1
-            /*if (self.groupNumber == info.GroupList[self.groupNumber - 1].GroupNumber) {
-                self.accessory.displayName = info.GroupList[self.groupNumber - 1].Name;
-                self.brightness = info.GroupList[self.groupNumber - 1].Intensity;
-                self.binaryState = self.brightness > 0 ? 1 : 0;
-
-            } else {
-                self.log("Could not match group number in config.json to controller groups");
-
-            }*/
-            self.brightness = info.GroupList[self.groupNumber - 1].Intensity;  // JS arrays start at 0 while luxor numbering starts at 1
-            self.binaryState = self.brightness > 0 ? 1 : 0;
-        } else {
-            throw new Error(self.accessory.displayName + " was not able to connect to the controller.  Check your IP Address. Error: " + err);
-        }
-    })
-
-    .then(function (body) {
-        if (logmore) 
-        {
-             self.log('Successfully retrieved current %s of light group %s with result = %s', whichcall, self.accessory.displayName, (whichcall == "brightness" ? self.brightness: (self.binaryState==1?"On":"Off")));
-        }
-        
-           
-        if (whichcall == "brightness") {
-            callback(null, self.brightness);
-        } else if (whichcall == "power") {
-            callback(null, self.binaryState);
-        }
-        else {throw new Error(self.accessory.displayName + " Crash! Error: " + err);};
-    })
-    .catch(function (err) {
-    throw new Error(self.accessory.displayName + " Crash! Error: " + err);
-    });
+    return Promise.resolve()
+        .then(function() {
+            return self.getController().bind(this);
+        })
+        .then(function() {
+            return self.getControllerGroupList().bind(this);
+        })
+        .then(function() {
+            return self.addAccessory();
+        })
+        .then(function() {
+            return self.log('Finish did launching sequence');
+        })
+        .catch(function(err) {
+            self.log.error('Error in didFinishLaunching', err);
+        });
 };
