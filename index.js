@@ -74,16 +74,16 @@ LuxorPlatform.prototype.getController = function() {
                 var info = JSON.parse(body);
                 self.controller = info.Controller;
                 if (info.Controller.substring(0, 4) === 'luxor') {
-                    self.controllerType = 'ZD'
+                    self.controllerType = 'ZD';
                 } else {
                     // "lxzdc"
-                    self.controllerType = 'ZDC'
+                    self.controllerType = 'ZDC';
                 }
                 self.log(self.Name + ': Found Controller named ' + info.Controller);
                 return self.controller;
             })
             .catch(function(err) {
-                self.error(this.Name + ' was not able to connect to connect to the controller. ', err);
+                self.log.error(self.Name + ' was not able to connect to connect to the controller. ', err);
             });
     }
 };
@@ -120,17 +120,27 @@ LuxorPlatform.prototype.removeAccessory = function(accessory) {
     self.api.unregisterPlatformAccessories("homebridge-luxor", "Luxor", [accessory]);
 
     // loop to remove accessory from self.accessories cache
-    for (var i=0; i<self.accessories.length; i++){
-      if (accessory.displayName===self.accessories[i].accessory.displayName){
-        self.log.debug(self.Name + ': Removing %s from local cache.', accessory.displayName);
-        self.accessories.splice(i,1);
-        break;
-      }
+    for (var i = 0; i < self.accessories.length; i++) {
+        if (accessory.displayName === self.accessories[i].accessory.displayName) {
+            self.log.debug(self.Name + ': Removing %s from local cache.', accessory.displayName);
+            self.accessories.splice(i, 1);
+            break;
+        }
     }
     return;
 };
 
-
+LuxorPlatform.prototype.pollingBrightness = function() {
+    var self = this;
+    if (Object.keys(self.accessories).length > 0) {
+        self.accessories.map(function(el) {
+            el.getBrightness(function() {
+                self.log.debug(self.Name + ': Polled %s for change in brightness.', el.accessory.displayName);
+            });
+        });
+    }
+    setTimeout(self.pollingBrightness.bind(this), 30 * 1000);
+};
 
 
 // Function invoked when homebridge tries to restore cached accessory
@@ -149,17 +159,17 @@ LuxorPlatform.prototype.configureAccessory = function(accessory) {
     // cached items of the same name.
     var duplicate = false;
     // console.log('acc.leng', self.accessories.length)
-    for (var i=0; i<self.accessories.length; i++){
-      // console.log(i + ': ' + self.accessories[i].accessory.displayName)
-      // console.log('match?', accessory.displayName===self.accessories[i].accessory.displayName)
-      if (accessory.displayName===self.accessories[i].accessory.displayName){
-        self.log.debug(self.Name + ': Found duplicate light %s in cache.  Something previously went wrong.', accessory.displayName);
-        this.api.unregisterPlatformAccessories("homebridge-luxor", "Luxor", [accessory]);
-        duplicate = true;
-        return;
-      }
+    for (var i = 0; i < self.accessories.length; i++) {
+        // console.log(i + ': ' + self.accessories[i].accessory.displayName)
+        // console.log('match?', accessory.displayName===self.accessories[i].accessory.displayName)
+        if (accessory.displayName === self.accessories[i].accessory.displayName) {
+            self.log.debug(self.Name + ': Found duplicate light %s in cache.  Something previously went wrong.', accessory.displayName);
+            this.api.unregisterPlatformAccessories("homebridge-luxor", "Luxor", [accessory]);
+            duplicate = true;
+            return;
+        }
     }
-    if (duplicate===false) {
+    if (duplicate === false) {
         // accessory has not already been added to self.accessories
         accessory = new luxorZDAccessory(accessory, self.ip_addr, accessory.context.group, 0, 'cached', self.log, Accessory, Characteristic, Service, UUIDGen);
         self.accessories.push(accessory);
@@ -247,7 +257,8 @@ LuxorPlatform.prototype.didFinishLaunching = function() {
             return self.addAccessory();
         })
         .then(function() {
-            return self.log('Finish did launching sequence');
+            // run this now to get brightness of any cached accessories, and start the polling interval
+            return self.pollingBrightness();
         })
         .catch(function(err) {
             self.log.error('Error in didFinishLaunching', err);
