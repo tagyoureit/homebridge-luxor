@@ -9,8 +9,6 @@ var Accessory, Characteristic, Service, UUIDGen;
 var LuxorAccessory = function(accessory, ip_addr, group, brightness, status, log, _Accessory, _Characteristic, _Service, _UUIDGen) {
     var self = this;
 
-    //console.log('function LuxorAccessory: \n %s \n %s \n %s \n %s \n %s \n %s', log, accessory.UUID, ip_addr, group, brightness, status);
-
     // Accessory must be created from PlatformAccessory Constructor
     Accessory = _Accessory;
 
@@ -18,7 +16,8 @@ var LuxorAccessory = function(accessory, ip_addr, group, brightness, status, log
     Characteristic = _Characteristic;
     Service = _Service;
     UUIDGen = _UUIDGen;
-    self.Name = 'LuxorPlatform';
+    self.Name = 'ZD Accessory';
+
     self.accessory = accessory;
     self.log = log;
 
@@ -27,8 +26,7 @@ var LuxorAccessory = function(accessory, ip_addr, group, brightness, status, log
 
     self.log(self.Name + ': initializing %s ZD light %s', status, self.accessory.displayName);
 
-
-
+    self.selfcall = false;
 
     // Plugin can save context on accessory
     // To help restore accessory in configureAccessory()
@@ -83,34 +81,27 @@ var LuxorAccessory = function(accessory, ip_addr, group, brightness, status, log
         return Promise.resolve()
             .then(function() {
                 self.log(self.Name + ' :Identifying %s.  Lights should flash twice.', accessory.displayName);
-                self.setPower(1, function() {});
-                return;
+                return self.setPower(1, function() {});
             })
-            .delay(2000)
+            .delay(3000)
             .then(function() {
-                self.setPower(0, function() {});
-                return;
-            })
-            .delay(2000)
+                return self.setPower(0, function() {});
+                })
+            .delay(3000)
             .then(function() {
-                self.setPower(1, function() {});
-                return;
+                return self.setPower(1, function() {});
             })
-            .delay(2000)
+            .delay(3000)
             .then(function() {
-                self.setPower(0, function() {});
-                return;
+                return self.setPower(0, callback);
             })
-            .then(function() {
-                callback();
-                return;
-            })
+          //  .then(function() {
+          //      return callback();
+          //  })
             .catch(function(err) {
                 self.log.error('Error identifying accessory', self.accessary.displayName);
             });
-
     });
-
 };
 
 LuxorAccessory.prototype.getPower = function(callback) {
@@ -121,15 +112,21 @@ LuxorAccessory.prototype.getPower = function(callback) {
 
 LuxorAccessory.prototype.setPower = function(powerOn, callback) {
     var self = this;
+    if (self.selfcall) {
+      self.selfcall = false;
+      return callback();
+    }
     if (self.binaryState === powerOn) {
         self.log.debug('Not changing power to %s because it is already %s', powerOn, self.binaryState);
-        callback();
+
     } else {
         self.binaryState = powerOn ? 1 : 0;
         // self.log.debug("Attempting to set Power for the %s to %s", self.accessory.displayName, self.binaryState == 1 ? "on " : "off");
         if (powerOn === 1) {
+          self.selfcall = true;
             self.accessory.getService(Service.Lightbulb).setCharacteristic(Characteristic.Brightness, 100);
         } else {
+          self.selfcall = true;
             self.accessory.getService(Service.Lightbulb).setCharacteristic(Characteristic.Brightness, 0);
         }
         self.illuminateGroup(callback, self.binaryState * 100); //set to 0 if we want to turn off, or 50 if we want to turn on.
@@ -152,42 +149,29 @@ LuxorAccessory.prototype.getBrightness = function(callback) {
         .catch(function(err) {
             self.log.error(self.Name + ': Error Updating Brightness', err);
         });
-
-    // self.getCurrentState(callback, "brightness");
-    // if (self.accessory.reachable === false) {
-    //     // this is here because we set cached accessory reachable=false until we update the brightness
-    //     self.accessory.updateReachability(true);
-    // }
-    // return;
 };
 
 LuxorAccessory.prototype.setBrightness = function(brightness, callback) {
     var self = this;
+    if (self.selfcall) {
+      self.selfcall = false;
+      return callback();
+    }
     return Promise.resolve()
         .then(function() {
             // self.log.debug("Attempting to Set Brightness for the '%s' to %s", self.accessory.displayName, brightness);
-            return self.illuminateGroup(callback, brightness);
-        })
-        .then(function() {
             if (brightness === 0) {
+              self.selfcall = true;
               self.accessory.getService(Service.Lightbulb).setCharacteristic(Characteristic.On, 0);
             } else {
+              self.selfcall = true;
               self.accessory.getService(Service.Lightbulb).setCharacteristic(Characteristic.On, 1);
             }
-            return;
+            return self.illuminateGroup(callback, brightness);
         })
         .catch(function(err) {
             self.log.error(self.Name + ': Error attempting to set brightness.', err);
         });
-
-    // self.log("Attempting to Set Brightness for the '%s' to %s", self.accessory.displayName, brightness);
-    //
-    // if (brightness === 0) {
-    //     self.accessory.getService(Service.Lightbulb).setCharacteristic(Characteristic.On, 0);
-    // } else {
-    //     self.accessory.getService(Service.Lightbulb).setCharacteristic(Characteristic.On, 1);
-    // }
-    //     return self.illuminateGroup(callback, brightness);
 };
 
 
@@ -213,11 +197,9 @@ function getStatus(result) {
             return ('Unknown status');
     }
 }
+
 LuxorAccessory.prototype.illuminateGroup = function(callback, desiredIntensity) {
     var self = this;
-    console.log('UUID', self.accessory.UUID);
-    //self.log('Setting light %s (%s) to intensity ', self.accessory.displayName, self.groupNumber, (desiredIntensity === 0 ? "0 (Off)" : desiredIntensity));
-
     var requestData = JSON.stringify({
         'GroupNumber': self.groupNumber,
         'Intensity': desiredIntensity
@@ -245,42 +227,29 @@ LuxorAccessory.prototype.illuminateGroup = function(callback, desiredIntensity) 
             }
         })
         .then(function(result) {
-          self.log(self.Name + ': Successfully set %s brightess to %s: %s ', self.accessory.displayName, (desiredIntensity === 0 ? "0 (Off)" : desiredIntensity), result);
-
-            if (callback !== undefined) callback(null, self.brightness);
-            return;
+            callback();
+          return self.log(self.Name + ': Successfully set %s brightess to %s: %s ', self.accessory.displayName, (desiredIntensity === 0 ? "0 (Off)" : desiredIntensity), result);
         })
         .catch(function(err) {
             throw new Error(self.accessory.displayName + " Crash! Error: " + err);
         });
-
-
-
 };
 
 LuxorAccessory.prototype.getCurrentState = function(callback, whichcall) {
     var self = this;
     self.log.debug(self.Name + ': Retrieving %s of light group %s %s', whichcall, self.groupNumber, self.accessory.displayName);
 
-
     var post_options = {
         url: 'http://' + self.ip_addr + '/GroupListGet.json',
         method: 'POST'
-
     };
 
     return rp(post_options)
         .then(function(body) {
             var info = JSON.parse(body);
-
             self.brightness = info.GroupList[self.groupNumber - 1].Intensity; // JS arrays start at 0 while luxor numbering starts at 1
-
             self.binaryState = self.brightness > 0 ? 1 : 0;
-
-
             self.log(self.Name + ': Current %s of light group %s is %s', whichcall, self.accessory.displayName, (whichcall == "brightness" ? self.brightness : (self.binaryState == 1 ? "On" : "Off")));
-
-
             if (whichcall == "brightness") {
                 callback(null, self.brightness);
             } else if (whichcall == "power") {
@@ -294,8 +263,6 @@ LuxorAccessory.prototype.getCurrentState = function(callback, whichcall) {
             callback(err);
             self.log.error(self.accessory.displayName + ": Not able to connect to the controller.  Error: " + err);
         });
-
-
 };
 
 module.exports = LuxorAccessory;

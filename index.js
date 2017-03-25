@@ -29,11 +29,12 @@ module.exports = function(homebridge) {
 function LuxorPlatform(log, config, api) {
 
     var self = this;
-    self.Name = 'LuxorPlatform';
+    self.config = config || {};
+
+    self.Name = config.name;
     self.log = log;
 
-    self.config = config || {};
-    // self.accessories = {};
+
     self.accessories = [];
 
     self.ip_addr = config.ipAddr;
@@ -79,7 +80,7 @@ LuxorPlatform.prototype.getController = function() {
                     // "lxzdc"
                     self.controllerType = 'ZDC';
                 }
-                self.log(self.Name + ': Found Controller named ' + info.Controller);
+                self.log('Found Controller named ' + info.Controller);
                 return self.controller;
             })
             .catch(function(err) {
@@ -91,7 +92,7 @@ LuxorPlatform.prototype.getController = function() {
 LuxorPlatform.prototype.getControllerGroupList = function() {
     // Get the list of light groups from the controller
     var self = this;
-    self.log.debug(self.Name + ': Retrieving light groups from controller');
+    self.log.debug('Retrieving light groups from controller');
 
     var post_options = {
         url: 'http://' + self.ip_addr + '/GroupListGet.json',
@@ -103,18 +104,18 @@ LuxorPlatform.prototype.getControllerGroupList = function() {
             for (var i in info.GroupList) {
                 self._tmpControllerLightGroups[i] = info.GroupList[i];
             }
-            self.log(self.Name + ': Found %s light groups.', Object.keys(info.GroupList).length);
+            self.log('Found %s light groups.', Object.keys(info.GroupList).length);
             return self._tmpControllerLightGroups;
         })
         .catch(function(err) {
-            self.log.error(self.Name + ': was not able to retrieve light groups from controller.', err);
+            self.log.error('was not able to retrieve light groups from controller.', err);
         });
 };
 
 
 LuxorPlatform.prototype.removeAccessory = function(accessory) {
     var self = this;
-    self.log(self.Name + ': Removed accessory %s', accessory.displayName);
+    self.log('Removed accessory %s', accessory.displayName);
 
     // remove accessory from Homebridge
     self.api.unregisterPlatformAccessories("homebridge-luxor", "Luxor", [accessory]);
@@ -122,7 +123,7 @@ LuxorPlatform.prototype.removeAccessory = function(accessory) {
     // loop to remove accessory from self.accessories cache
     for (var i = 0; i < self.accessories.length; i++) {
         if (accessory.displayName === self.accessories[i].accessory.displayName) {
-            self.log.debug(self.Name + ': Removing %s from local cache.', accessory.displayName);
+            self.log.debug('Removing %s from local cache.', accessory.displayName);
             self.accessories.splice(i, 1);
             break;
         }
@@ -135,7 +136,7 @@ LuxorPlatform.prototype.pollingBrightness = function() {
     if (Object.keys(self.accessories).length > 0) {
         self.accessories.map(function(el) {
             el.getBrightness(function() {
-                self.log.debug(self.Name + ': Polled %s for change in brightness.', el.accessory.displayName);
+                self.log.debug('Polled %s for change in brightness.', el.accessory.displayName);
             });
         });
     }
@@ -149,7 +150,7 @@ LuxorPlatform.prototype.pollingBrightness = function() {
 LuxorPlatform.prototype.configureAccessory = function(accessory) {
 
     var self = this;
-    self.log.debug(self.Name + ': processing cached accessory %s', accessory.displayName);
+    self.log.debug('processing cached accessory %s', accessory.displayName);
 
     /*  FIRST: ADD ANY CACHED ACCESSORIES    */
     // In the SECOND step we will remove the accessory if it is no longer valid
@@ -163,7 +164,7 @@ LuxorPlatform.prototype.configureAccessory = function(accessory) {
         // console.log(i + ': ' + self.accessories[i].accessory.displayName)
         // console.log('match?', accessory.displayName===self.accessories[i].accessory.displayName)
         if (accessory.displayName === self.accessories[i].accessory.displayName) {
-            self.log.debug(self.Name + ': Found duplicate light %s in cache.  Something previously went wrong.', accessory.displayName);
+            self.log.debug('Found duplicate light %s in cache.  Something previously went wrong.', accessory.displayName);
             this.api.unregisterPlatformAccessories("homebridge-luxor", "Luxor", [accessory]);
             duplicate = true;
             return;
@@ -187,7 +188,7 @@ LuxorPlatform.prototype.addAccessory = function() {
     if (Object.keys(self.accessories).length > 0) {
         self.accessories.map(function(el) {
             var found = 0;
-            self.log.debug(self.Name + ': Checking if %s is still a valid (from cache) accessory', el.accessory.displayName);
+            self.log.debug('Checking if %s is still a valid (from cache) accessory', el.accessory.displayName);
             self._tmpControllerLightGroups.map(function(el2) {
                 // console.log('still valid? ', el2.Name === el.accessory.displayName, el2.Name, el.accessory.displayName)
                 if (el2.Name === el.accessory.displayName) {
@@ -196,7 +197,7 @@ LuxorPlatform.prototype.addAccessory = function() {
             });
             if (found === 0) {
                 // cached element does NOT exist in current light group
-                self.log(self.Name + ': Removing cached accessory %s', el.accessory.displayName);
+                self.log('Removing cached accessory %s', el.accessory.displayName);
                 //self.accessories.splice(el.accessory, 1);
                 //self.api.unregisterPlatformAccessories("homebridge-luxor", "Luxor", [el.accessory]);
                 self.removeAccessory(el.accessory);
@@ -209,20 +210,20 @@ LuxorPlatform.prototype.addAccessory = function() {
     // })
     /*  THIRD: IF NEW LIGHT GROUPS ARE FOUND, ADD THEM    */
     self._tmpControllerLightGroups.map(function(el) {
-        self.log.debug(self.Name + ': Checking to see if %s is a new (from controller) accessory.', el.Name);
+        self.log.debug('Checking to see if %s is a new (from controller) accessory.', el.Name);
         var found = 0;
         self.accessories.map(function(el2) {
             // loop through _tmp array for each self.accessories to see if there is a match
             // if it is not already in the accessories array we will add it
             // if is in the self.accessories cache then we already know about it and will skip it.
             if (el.Name === el2.accessory.displayName) {
-                self.log.debug(self.Name + ': ' + el.Name + ' was already added because it is a cached accessory.');
+                self.log.debug('' + el.Name + ' was already added because it is a cached accessory.');
                 found = 1;
             }
         });
 
         if (found === 0) {
-            self.log(self.Name + ': Adding new Luxor light group: ', el.Name);
+            self.log('Adding new Luxor light group: ', el.Name);
             // var item = self._tmpControllerLightGroups[index];
             var uuid = UUIDGen.generate(el.Name);
             var accessory = new Accessory(el.Name, uuid);
