@@ -234,6 +234,10 @@ LuxorAccessory.prototype.getCurrentState = function(callback, whichcall) {
       } else {
         throw new Error(self.accessory.displayName + " Invalid Characteristic: ", whichcall);
       }
+      // homekit wasn't updating the values with just the callback, so explicitly calling these here.
+      self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.On).updateValue(self.accessory.context.binaryState);
+      self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Brightness).updateValue(self.accessory.context.brightness);
+
 
       return self.accessory.context.binaryState;
     })

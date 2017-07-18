@@ -242,9 +242,8 @@ LuxorAccessory.prototype.setBrightness = function(brightness, callback) {
 
 LuxorAccessory.prototype.pollingStatus = function() {
   var self = this;
-  self.getBrightness(function() {
-    // self.log.debug('Polled %s for change in brightness.', self.accessory.displayName);
-  });
+  self.getCurrentState(function() {}, 'brightness');
+  self.getCurrentState(function() {}, 'power');
   self.getHueSaturation(function() {});
 
   setTimeout(self.pollingStatus.bind(this), 30 * 1000);
@@ -401,19 +400,20 @@ LuxorAccessory.prototype.getCurrentState = function(callback, whichcall) {
       }
 
       if (whichcall == "brightness") {
-        callback(null, self.accessory.context.brightness);
+        if (callback!==undefined) callback(null, self.accessory.context.brightness);
         self.log.debug(self.Name + ': Retrieved %s of light group %s %s: %s', whichcall, self.accessory.context.groupNumber, self.accessory.displayName, self.accessory.context.brightness);
       } else if (whichcall == "power") {
-        callback(null, self.accessory.context.binaryState);
+        if (callback!==undefined) callback(null, self.accessory.context.binaryState);
         self.log.debug(self.Name + ': Retrieved %s of light group %s %s: %s', whichcall, self.accessory.context.groupNumber, self.accessory.displayName, self.accessory.context.binaryState);
-      } else {
-        throw new Error(self.accessory.displayName + " Invalid Characteristic: ", whichcall);
       }
+      // homekit wasn't updating the values with just the callback, so explicitly calling these here.
+      self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.On).updateValue(self.accessory.context.binaryState);
+      self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Brightness).updateValue(self.accessory.context.brightness);
       return self.accessory.context.binaryState;
     })
     .catch(function(err) {
-      callback(err);
-      self.log.error(self.accessory.displayName + ": Not able to connect to the controller.  Error: " + err);
+      if (callback!==undefined) callback(err);
+      self.log.error(self.accessory.displayName + ": Error getting current state of ZDC light: " + err);
     });
 };
 

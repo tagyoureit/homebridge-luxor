@@ -10,7 +10,7 @@ var luxorZDLight = require('./luxorZDLight.js');
 var luxorZDCLight = require('./luxorZDCLight.js');
 var luxorZDController = require('./luxorZDController.js');
 var luxorZDCController = require('./luxorZDCController.js');
-var controller;  // will be assigned to ZD or ZDC controller
+var controller; // will be assigned to ZD or ZDC controller
 var Promise = require('bluebird');
 
 
@@ -81,13 +81,13 @@ LuxorPlatform.prototype.getController = function() {
         self.controllerList = info;
         if (info.Controller.substring(0, 5) === 'luxor') {
           self.controllerList.type = 'ZD';
-                  self.log('Found Controller named %s of type %s', info.Controller, self.controllerList.type);
-          controller = new luxorZDController(self.ip_addr, self.log)
+          self.log('Found Controller named %s of type %s', info.Controller, self.controllerList.type);
+          controller = new luxorZDController(self.ip_addr, self.log);
         } else if (info.Controller.substring(0, 5) === 'lxzdc') {
           // "lxzdc"
           self.controllerList.type = 'ZDC';
-                  self.log('Found Controller named %s of type %s', info.Controller, self.controllerList.type);
-          controller = new luxorZDCController(self.ip_addr, self.log)
+          self.log('Found Controller named %s of type %s', info.Controller, self.controllerList.type);
+          controller = new luxorZDCController(self.ip_addr, self.log);
 
         }
 
@@ -182,9 +182,8 @@ LuxorPlatform.prototype.addAccessory = function(lightGroup, status) {
     .then(function() {
       var lightType;
       if (lightGroup.Color === 0) {
-          lightType = "ZD";
-      }
-      else {
+        lightType = "ZD";
+      } else {
         lightType = "ZDC";
       }
       var uuid = UUIDGen.generate('luxor.' + lightType + lightGroup.Name);
@@ -205,16 +204,16 @@ LuxorPlatform.prototype.addAccessory = function(lightGroup, status) {
         accessory.context.status = 'new';
 
         if (self.controllerList.type === "ZD") {
-          self.log('Adding %s as ZD module with ZD controller', lightGroup.Name);
+          //self.log('Adding %s as ZD module with ZD controller', lightGroup.Name);
           newAccessory = new luxorZDLight(accessory, self.log, Homebridge, controller);
         } else if (self.controllerList.type === "ZDC") {
-          if (accessory.context.lightType==="ZD") {
+          if (accessory.context.lightType === "ZD") {
             // Monochrome fixture
-            self.log('Adding %s as ZD module with ZDC controller', lightGroup.Name);
+            //self.log('Adding %s as ZD module with ZDC controller', lightGroup.Name);
             newAccessory = new luxorZDLight(accessory, self.log, Homebridge, controller);
           } else {
             // color fixture
-            self.log('Adding %s as ZDC module with ZDC controller', lightGroup.Name);
+            //self.log('Adding %s as ZDC module with ZDC controller', lightGroup.Name);
             newAccessory = new luxorZDCLight(accessory, self.log, Homebridge, controller);
           }
 
@@ -227,20 +226,16 @@ LuxorPlatform.prototype.addAccessory = function(lightGroup, status) {
       }
       return uuid;
     })
-    .then(function(uuid){
-            return;
+    .then(function(uuid) {
+      return;
     });
 
 };
 
 LuxorPlatform.prototype.processCachedAccessories = function() {
   var self = this;
-  var count = 0;
   var accessory;
   for (var uuid in self.accessories) {
-    count = 0;
-    // accessory has not already been added to self.accessories
-    self.accessories[uuid].context.lastDateAdded = self.lastDateAdded;
     if (self.controllerList.type === "ZD") {
       accessory = new luxorZDLight(self.accessories[uuid], self.log, Homebridge, controller);
     } else if (self.controllerList.type === "ZDC") {
@@ -248,8 +243,7 @@ LuxorPlatform.prototype.processCachedAccessories = function() {
         accessory = new luxorZDLight(self.accessories[uuid], self.log, Homebridge, controller);
       } else if (self.accessories[uuid].context.lightType === 'ZDC') {
         accessory = new luxorZDCLight(self.accessories[uuid], self.log, Homebridge, controller);
-      }
-      else {
+      } else {
         console.log('WHOA!!! What is this? %s  \n\t %s', uuid, self.accessories[uuid])
       }
     }
@@ -266,11 +260,10 @@ LuxorPlatform.prototype.didFinishLaunching = function() {
     self.log.error(this.Name + " needs an IP Address in the config file.  Please see sample_config.json.");
   }
   return Promise.resolve()
-  .then(function() {
-    return self.getController().bind(this)
-    .then(function(){
-    });
-  })
+    .then(function() {
+      return self.getController().bind(this)
+        .then(function() {});
+    })
     .then(function() {
       return self.processCachedAccessories();
     })
