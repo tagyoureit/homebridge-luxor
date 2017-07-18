@@ -2,13 +2,13 @@
 
 This is a PLATFORM module for the [HomeBridge Platform](https://github.com/nfarina/homebridge) to control [FX Luminaire](http://www.FXL.com).  
 
-This plug-in enables power and brightness controls for [FX Luminaire Luxor ZD](http://www.fxl.com/product/power-and-control/luxor-zd) light groups.  
+This plug-in enables power and brightness controls for [FX Luminaire Luxor ZD](http://www.fxl.com/product/power-and-control/luxor-zd) and [FX Luminaire Luxor ZDC](http://www.fxl.com/product/power-and-control/luxor-zdc).  
 
 # Installation
 
 1. Install homebridge using: `npm install -g homebridge` [Full directions at HomeBridge page](https://github.com/nfarina/homebridge)
 1. Install this plugin using: `npm install -g homebridge-luxor`
-1. Update your configuration file. See sample-config.json in this repository for a sample. 
+1. Update your configuration file. See sample-config.json in this repository for a sample.
 
 # Specific ZDC controller with ZDC lights notes
 1. This app will designate a specific Luxor color palette for each group.  The formula is (250-[group number]+1).  Group 1 will user C250, Group 2 will use C249, etc.  Homekit will then assign any colors to this new group.  This allows you to keep your existing color palettes in case you want to change the lights from the Luxor app.
