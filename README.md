@@ -1,36 +1,32 @@
-# homebridge-luxor
+# homebridge-luxor 2.0
 
-This is a PLATFORM module for the [HomeBridge Platform](https://github.com/nfarina/homebridge) to control [FX Luminaire](http://www.FXL.com).  Huge props to [David Parry](https://github.com/devbobo) for converting this from an accessory to a platform in the blink of an eye!
+This is a PLATFORM module for the [HomeBridge Platform](https://github.com/nfarina/homebridge) to control [FX Luminaire](http://www.FXL.com).  
 
 This plug-in enables power and brightness controls for [FX Luminaire Luxor ZD](http://www.fxl.com/product/power-and-control/luxor-zd) light groups.  
 
 # Installation
 
-1. Install homebridge using: npm install -g homebridge [Full directions at HomeBridge page](https://github.com/nfarina/homebridge)
-2. Install this plugin using: npm install -g homebridge-luxor
-3. Update your configuration file. See sample-config.json in this repository for a sample. 
+1. Install homebridge using: `npm install -g homebridge` [Full directions at HomeBridge page](https://github.com/nfarina/homebridge)
+1. Install this plugin using: `npm install -g homebridge-luxor`
+1. Update your configuration file. See sample-config.json in this repository for a sample. 
 
+# Specific ZDC controller with ZDC lights notes
+1. This app will designate a specific Luxor color palette for each group.  The formula is (250-[group number]+1).  Group 1 will user C250, Group 2 will use C249, etc.  Homekit will then assign any colors to this new group.  This allows you to keep your existing color palettes in case you want to change the lights from the Luxor app.
+1. The first time you load this module it will copy the current color palette values (hue and saturation) to the aforementioned new groups.
+1. This module will poll the Luxor controller every 30 seconds for color (see note below in known issues on brightness/on/off).  If the color is changed in the Luxor app or controller, it will NOT be indicated here.  However, we will accurately display brightness/on/off.  
+1. If you change any of brightness/color/on/off through HomeKit, all values will be updated in this module.
 
 # Known Issues
-1.  Plug-in is written only for the ZD controller (Zoning, Diming).  It may work with the ZDC (Zoning, Dimming, and Color) but I have not tested it (the color selection is not currently coded).  (See #1 in enhancements.)
-2.  FIXED ~~When using the app, Program A changes the on/off or brightness, Program B will need to refresh twice to see the changes take effect.  This is because the getBrightness and getPowerOn functions return their values before the http post returns with its data.~~ 
-3.  Refactor code.
-
+1. This module will poll the Luxor controller every 30 seconds for updates to brightness/on/off.  This may appear to have a small delay when reporting a status that is changed outside of HomeKit.
 
 # Future enhancements (in no particular order)
-1.  Add ZDC configurations/code (if there is a demand)
-2.  FIXED ~~Figure out the differences between the name, servicename, accessoryname, etc to enable proper HomeKit configuration and unique UUID~~
-3.  FIXED ~~Add manufacturer and model (at the service level?) for various apps' aesthetics.~~ (Well, manufacturer is added anyway.)
-4.  FIXED ~~Module should be able to dynamically retrieve groupname and groupnumber (as this is exposed via an API) but for now it is in the configuration file.~~
-5.  FIXED ~~This module should really be converted to a platform.  Effect will be that one controller can be defined in the configuration file and all the lights will be automatically added.~~
-6?. Luxor controllers have Themes (preset configurations for groups of lights) but not sure if these should be included as they could duplicate the Zones functionality in HomeKit.  Possibly Zones could be configured programatically but I haven't looked into that.
-7.  There is no push notification (eg if I turn on the light manually at the controller, or via the native app, HomeKit won't get notified).  Should I implement a timer to periodically check the state of the lights and update HomeKit?
+1. Any requests?
 
 
 # Credit
 
 1.  I knew that the FX controller had a minimal web interface, and discovered a couple of the API calls, but then found a full(?) list and implementation of the code in a Go library written by [Scott Lamb](https://github.com/scottlamb/luxor).
 2.  I used the original WeMo code from [rudders](https://github.com/rudders/homebridge-wemo) as a template and hacked away at it until I got to this point.
-3.  Of course, to [nfarina](https://github.com/nfarina/homebridge) for the HomeBridge and, in turn, [KhaosT](http://twitter.com/khaost) for the original [HAP-NodeJS](https://github.com/KhaosT/HAP-NodeJS) project. 
-4.  [David Parry](https://github.com/devbobo) for helping convert this to a platform module.
-
+3.  Of course, to [nfarina](https://github.com/nfarina/homebridge) for the HomeBridge and, in turn, [KhaosT](http://twitter.com/khaost) for the original [HAP-NodeJS](https://github.com/KhaosT/HAP-NodeJS) project.
+4.  [David Parry](https://github.com/devbobo) for helping convert v1.0 to a platform module.
+5.  The Luxor team at Hunter for providing support and test materials.
