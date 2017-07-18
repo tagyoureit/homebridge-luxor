@@ -151,14 +151,14 @@ var LuxorAccessory = function(accessory, log, Homebridge, Controller) {
             desiredSaturation = colors.Sat;
             var oldC = self.accessory.context.color;
             self.accessory.context.color = (250 - self.accessory.context.groupNumber + 1);
-            self.log('%s: Copying light palette C%s to color C%s (Hue: %s, Sat: %s)', self.Name, oldC, self.accessory.context.color, desiredHue, desiredSaturation)
+            self.log('%s: Copying light palette C%s to color C%s (Hue: %s, Sat: %s)', self.Name, oldC, self.accessory.context.color, desiredHue, desiredSaturation);
             // set the "current" color to the new color
             return self.colorListSet();
           });
       } else {
         // if we are loading again with no change in color outside of homekit
         self.accessory.context.color = (250 - self.accessory.context.groupNumber + 1);
-        self.log('%s: Assigning light group to color C%s', self.Name, self.accessory.context.color)
+        self.log('%s: Assigning light group to color C%s', self.Name, self.accessory.context.color);
         return;
       }
     })
@@ -252,15 +252,23 @@ LuxorAccessory.prototype.pollingStatus = function() {
 
 LuxorAccessory.prototype.setHue = function(value, callback) {
   var self = this;
-  desiredHue = value;
-  self.groupListEdit()
-  .then(function(){
-    self.colorListSet();
-    self.log("%s called colorListSet (from setHue) with value hue:%s", self.Name, value);
+  if (value !== self.accessory.context.due) {
+    desiredHue = value;
+    self.groupListEdit()
+      .then(function() {
+        self.log("%s calling colorListSet (from setHue) with value hue:%s", self.Name, value);
+      })
+      .then(function() {
+        return self.colorListSet();
+      })
+      .then(function() {
+        callback();
+        return;
+      });
+  }
+  else {
     callback();
-    return;
-  })
-
+  }
 };
 
 LuxorAccessory.prototype.getHueSaturation = function(callback) {
@@ -274,22 +282,32 @@ LuxorAccessory.prototype.getHueSaturation = function(callback) {
       self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Saturation).updateValue(colors.Sat);
     })
     .then(function() {
-      self.log("%s: Retrieved colors for palette %s.  Color#: Hue: %s Saturation: %s", self.Name, self.accessory.context.color, self.accessory.context.hue, self.accessory.context.saturation);
+      self.log("%s: Retrieved colors for palette C%s.  Hue: %s Saturation: %s", self.Name, self.accessory.context.color, self.accessory.context.hue, self.accessory.context.saturation);
       callback();
-    })
+    });
 
 };
 
 LuxorAccessory.prototype.setSaturation = function(value, callback) {
   var self = this;
-  desiredSaturation = value;
-  self.groupListEdit()
-  .then(function(){
-    self.colorListSet();
-    self.log("%s called colorListSet (from setSaturation) with value:%s", self.Name, value);
+  if (value !== self.accessory.context.saturation) {
+    desiredSaturation = value;
+    self.groupListEdit()
+      .then(function() {
+        self.log("%s calling colorListSet (from setSaturation) with value:%s", self.Name, value);
+      })
+      .then(function() {
+        return self.colorListSet();
+      })
+      .then(function() {
+        callback();
+        return;
+      });
+  }
+  else {
     callback();
-    return;
-  })
+  }
+
 };
 
 
@@ -300,17 +318,21 @@ LuxorAccessory.prototype.colorListSet = function() {
     desiredHueSatTimer = setTimeout(function() {
       desiredHue = -1;
       desiredSaturation = -1;
-    });
+    }, 1000);
+    return;
   } else {
     clearTimeout(desiredHueSatTimer);
     return controller.ColorListSet(self.accessory.context.color, desiredHue, desiredSaturation)
       .then(function() {
-        self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Hue).updateValue(desiredHue);
-        self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Saturation).updateValue(desiredSaturation);
+        self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Hue).setValue(desiredHue);
+        self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Saturation).setValue(desiredSaturation);
         desiredHue = -1;
         desiredSaturation = -1;
       })
-      .then(controller.GroupListEdit(self.accessory.displayName, self.accessory.context.groupNumber, self.accessory.context.color))
+      .then(function() {
+        controller.GroupListEdit(self.accessory.displayName, self.accessory.context.groupNumber, self.accessory.context.color);
+        return;
+      })
       .catch(function(err) {
         self.log('Error trying to set the color:', err);
       });
@@ -318,83 +340,81 @@ LuxorAccessory.prototype.colorListSet = function() {
 };
 
 LuxorAccessory.prototype.groupListEdit = function() {
-    var self = this;
-    return controller.GroupListGet()
-      .then(function(info) {
-        // if the color paletto CXXX was change outside homebridge, but the user selects to set the color/brightness then make sure we assign the right color.
+  var self = this;
+  return controller.GroupListGet()
+    .then(function(info) {
+      // if the color paletto CXXX was change outside homebridge, but the user selects to set the color/brightness then make sure we assign the right color.
 
-          var desiredColor = 250 - info.GroupList[self.accessory.context.groupNumber-1].GroupNumber + 1
-          var currentColor = info.GroupList[self.accessory.context.groupNumber-1].Color;
-          if (currentColor !== desiredColor) {
-            self.log('%s color assignment was changed outside of HomeKit.  Changing to %s', self.Name, desiredColor)
-            self.accessory.context.color = desiredColor;
-            controller.GroupListEdit(self.accessory.displayName, self.accessory.context.groupNumber, self.accessory.context.color);
-            return;
-          }
-          else {
-            // no change in color group
-            return;
-          }
-        });
-      };
+      var desiredColor = 250 - info.GroupList[self.accessory.context.groupNumber - 1].GroupNumber + 1;
+      var currentColor = info.GroupList[self.accessory.context.groupNumber - 1].Color;
+      if (currentColor !== desiredColor) {
+        self.log('%s color assignment was changed outside of HomeKit.  Changing to %s', self.Name, desiredColor);
+        self.accessory.context.color = desiredColor;
+        return controller.GroupListEdit(self.accessory.displayName, self.accessory.context.groupNumber, self.accessory.context.color);
+      } else {
+        // no change in color group
+        return;
+      }
+    });
+};
 
-    LuxorAccessory.prototype.illuminateGroup = function(callback, desiredIntensity, whichcall) {
-      var self = this;
-      return controller.IlluminateGroup(self.accessory.context.groupNumber, desiredIntensity)
-        .then(function(result) {
-          if (result == "Ok") {
-            self.accessory.context.brightness = desiredIntensity;
-            self.accessory.context.binaryState = (self.accessory.context.brightness) > 0 ? 1 : 0;
+LuxorAccessory.prototype.illuminateGroup = function(callback, desiredIntensity, whichcall) {
+  var self = this;
+  callback();
+  return controller.IlluminateGroup(self.accessory.context.groupNumber, desiredIntensity)
+    .then(function(result) {
+      if (result == "Ok") {
+        self.accessory.context.brightness = desiredIntensity;
+        self.accessory.context.binaryState = (self.accessory.context.brightness) > 0 ? 1 : 0;
 
-            self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.On).updateValue(desiredIntensity > 0 ? 1 : 0);
-            self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Brightness).updateValue(desiredIntensity);
-
+        self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.On).updateValue(desiredIntensity > 0 ? 1 : 0);
+        self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Brightness).updateValue(desiredIntensity);
 
 
-            return result;
-          } else {
-            throw new Error(this.Name + ': Something went wrong!  Request to set %s brightness to %s: %s ', self.accessory.displayName, desiredIntensity, result);
-          }
-        })
-        .then(function(result) {
-          callback();
-          if (whichcall === "brightness") {
-            return self.log(self.Name + ': Successfully set %s brightness to %s. %s ', self.accessory.displayName, (desiredIntensity === 0 ? "0 (Off)" : desiredIntensity), result === "Ok" ? '' : result);
-          } else {
-            return self.log(self.Name + ': Successfully set %s power to %s. %s ', self.accessory.displayName, (desiredIntensity === 0 ? "0 (Off)" : "On"), result === "Ok" ? '' : result);
-          }
-        })
-        .catch(function(err) {
-          throw new Error(self.accessory.displayName + " Crash! Error: " + err);
-        });
-    };
 
-    LuxorAccessory.prototype.getCurrentState = function(callback, whichcall) {
-      var self = this;
+        return result;
+      } else {
+        throw new Error(this.Name + ': Something went wrong!  Request to set %s brightness to %s: %s ', self.accessory.displayName, desiredIntensity, result);
+      }
+    })
+    .then(function(result) {
+      if (whichcall === "brightness") {
+        return self.log(self.Name + ': Successfully set %s brightness to %s. %s ', self.accessory.displayName, (desiredIntensity === 0 ? "0 (Off)" : desiredIntensity), result === "Ok" ? '' : result);
+      } else {
+        return self.log(self.Name + ': Successfully set %s power to %s. %s ', self.accessory.displayName, (desiredIntensity === 0 ? "0 (Off)" : "On"), result === "Ok" ? '' : result);
+      }
+    })
+    .catch(function(err) {
+      throw new Error(self.accessory.displayName + " Crash! Error: " + err);
+    });
+};
 
-      return controller.GroupListGet()
-        .then(function(info) {
-          if (self.accessory.context.brightness !== info.GroupList[self.accessory.context.groupNumber - 1].Intensity) {
-            self.accessory.context.brightness = info.GroupList[self.accessory.context.groupNumber - 1].Intensity; // JS arrays start at 0 while luxor numbering starts at 1
-            self.accessory.context.binaryState = self.accessory.context.brightness > 0 ? 1 : 0;
-            self.log(self.Name + ': Current %s of light group %s is %s', whichcall, self.accessory.displayName, (whichcall == "brightness" ? self.accessory.context.brightness : (self.accessory.context.binaryState == 1 ? "On" : "Off")));
-          }
+LuxorAccessory.prototype.getCurrentState = function(callback, whichcall) {
+  var self = this;
 
-          if (whichcall == "brightness") {
-            callback(null, self.accessory.context.brightness);
-            self.log.debug(self.Name + ': Retrieved %s of light group %s %s: %s', whichcall, self.accessory.context.groupNumber, self.accessory.displayName, self.accessory.context.brightness);
-          } else if (whichcall == "power") {
-            callback(null, self.accessory.context.binaryState);
-            self.log.debug(self.Name + ': Retrieved %s of light group %s %s: %s', whichcall, self.accessory.context.groupNumber, self.accessory.displayName, self.accessory.context.binaryState);
-          } else {
-            throw new Error(self.accessory.displayName + " Invalid Characteristic: ", whichcall);
-          }
-          return self.accessory.context.binaryState;
-        })
-        .catch(function(err) {
-          callback(err);
-          self.log.error(self.accessory.displayName + ": Not able to connect to the controller.  Error: " + err);
-        });
-    };
+  return controller.GroupListGet()
+    .then(function(info) {
+      if (self.accessory.context.brightness !== info.GroupList[self.accessory.context.groupNumber - 1].Intensity) {
+        self.accessory.context.brightness = info.GroupList[self.accessory.context.groupNumber - 1].Intensity; // JS arrays start at 0 while luxor numbering starts at 1
+        self.accessory.context.binaryState = self.accessory.context.brightness > 0 ? 1 : 0;
+        self.log(self.Name + ': Current %s of light group %s is %s', whichcall, self.accessory.displayName, (whichcall == "brightness" ? self.accessory.context.brightness : (self.accessory.context.binaryState == 1 ? "On" : "Off")));
+      }
 
-    module.exports = LuxorAccessory;
+      if (whichcall == "brightness") {
+        callback(null, self.accessory.context.brightness);
+        self.log.debug(self.Name + ': Retrieved %s of light group %s %s: %s', whichcall, self.accessory.context.groupNumber, self.accessory.displayName, self.accessory.context.brightness);
+      } else if (whichcall == "power") {
+        callback(null, self.accessory.context.binaryState);
+        self.log.debug(self.Name + ': Retrieved %s of light group %s %s: %s', whichcall, self.accessory.context.groupNumber, self.accessory.displayName, self.accessory.context.binaryState);
+      } else {
+        throw new Error(self.accessory.displayName + " Invalid Characteristic: ", whichcall);
+      }
+      return self.accessory.context.binaryState;
+    })
+    .catch(function(err) {
+      callback(err);
+      self.log.error(self.accessory.displayName + ": Not able to connect to the controller.  Error: " + err);
+    });
+};
+
+module.exports = LuxorAccessory;

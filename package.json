@@ -7,18 +7,23 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
-    "homebridge-plugin"
+    "homebridge-plugin",
+    "Luxor",
+    "ZD",
+    "ZDC"
+    "FX",
+    "Luminaire"
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/russgoldin/homebridge-luxor.git"
+    "url": "git://github.com/tagyoureit/homebridge-luxor.git"
   },
   "author": "Russ Goldin",
   "license": "ISC",
   "dependencies": {
     "bluebird": "^3.5.0",
-    "request": "^2.72.0",
-    "request-promise": "^3.0.0"
+    "request": "^2.81.0",
+    "request-promise": "^4.2.0"
   },
   "engines": {
     "node": ">=4.4.0",
