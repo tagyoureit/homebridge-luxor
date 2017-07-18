@@ -19,6 +19,7 @@ This plug-in enables power and brightness controls for [FX Luminaire Luxor ZD](h
 # Known Issues
 1. This module will poll the Luxor controller every 30 seconds for updates to brightness/on/off.  This may appear to have a small delay when reporting a status that is changed outside of HomeKit.
 
+
 # Future enhancements (in no particular order)
 1. Any requests?
 
