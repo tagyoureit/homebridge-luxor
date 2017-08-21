@@ -9,7 +9,7 @@ var rp = require('request-promise');
 var luxorZDLight = require('./luxorZDLight.js');
 var luxorZDCLight = require('./luxorZDCLight.js');
 var Promise = require('bluebird');
-
+//var ControllerCommon = require('controllerCommon.js');
 
 
 module.exports = LuxorZDCController;
@@ -60,6 +60,7 @@ LuxorZDCController.prototype.GroupListGet = function() {
   // Get the list of light groups from the controller
   var self = this;
   self.log.debug('Retrieving light groups from controller');
+
 
   var post_options = {
     url: 'http://' + self.ip + '/GroupListGet.json',
@@ -209,6 +210,53 @@ LuxorZDCController.prototype.GroupListEdit = function(name, groupNumber, color) 
       } else {
         throw new Error(result);
       }
+    })
+    .catch(function(err) {
+      throw new Error(err);
+    });
+};
+
+LuxorZDCController.prototype.ThemeListGet = function() {
+  // Get the list of light groups from the controller
+  var self = this;
+  self.log.debug('Retrieving light groups from controller');
+
+  var post_options = {
+    url: 'http://' + self.ip + '/ThemeListGet.json',
+    method: 'POST'
+  };
+  return rp(post_options)
+    .then(function(body) {
+      var info = JSON.parse(body);
+      return info;
+    })
+    .catch(function(err) {
+      self.log.error('was not able to retrieve light themes from controller.', err);
+    });
+};
+
+LuxorZDCController.prototype.IlluminateTheme = function(themeIndex, onOff) {
+  var self = this;
+  var requestData = JSON.stringify({
+    'ThemeIndex': themeIndex,
+    'OnOff': onOff
+  });
+
+  var rpOptions = {
+    url: 'http://' + self.ip + '/IlluminateTheme.json',
+    method: "POST",
+    body: requestData,
+    headers: {
+      'cache-control': 'no-cache',
+      'content-type': 'application/json',
+      'Content-Length': Buffer.byteLength(requestData)
+    }
+  };
+  return rp(rpOptions)
+    .then(function(body) {
+      var result = getStatus(JSON.parse(body).Status);
+
+      return result;
     })
     .catch(function(err) {
       throw new Error(err);

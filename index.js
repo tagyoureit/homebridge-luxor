@@ -10,6 +10,7 @@ var luxorZDLight = require('./luxorZDLight.js');
 var luxorZDCLight = require('./luxorZDCLight.js');
 var luxorZDController = require('./luxorZDController.js');
 var luxorZDCController = require('./luxorZDCController.js');
+var luxorTheme = require('./luxorTheme.js');
 var controller; // will be assigned to ZD or ZDC controller
 var Promise = require('bluebird');
 
@@ -117,6 +118,24 @@ LuxorPlatform.prototype.getControllerGroupList = function() {
     });
 };
 
+LuxorPlatform.prototype.getControllerThemeList = function() {
+  // Get the list of light LuxorThemes from the controller
+  var self = this;
+  var addAccessoryFactory = [];
+
+  return controller.ThemeListGet()
+    .then(function(info) {
+      self.log('Found %s themes.', Object.keys(info.ThemeList).length);
+      for (var i in info.ThemeList) {
+        addAccessoryFactory.push(self.addThemeAccessory(info.ThemeList[i], 'new'));
+      }
+      return Promise.all(addAccessoryFactory);
+    })
+    .catch(function(err) {
+      self.log.error('was not able to retrieve light themes from controller.', err);
+    });
+};
+
 
 LuxorPlatform.prototype.removeAccessory = function(uuid) {
   var self = this;
@@ -166,7 +185,7 @@ LuxorPlatform.prototype.removeOphanedAccessories = function() {
     .then(function() {
       for (var el in self.accessories) {
         if (self.accessories[el].accessory.context.lastDateAdded !== self.lastDateAdded) {
-          // cached element does NOT exist in current light group
+          // cached element does NOT exist in current light Theme
           self.log('Removing orphaned cached accessory %s', self.accessories[el].accessory.displayName);
           self.removeAccessory(self.accessories[el].accessory.UUID);
         }
@@ -232,6 +251,41 @@ LuxorPlatform.prototype.addAccessory = function(lightGroup, status) {
 
 };
 
+LuxorPlatform.prototype.addThemeAccessory = function(themeGroup, status) {
+  var self = this;
+
+  return Promise.resolve()
+    .then(function() {
+      var uuid = UUIDGen.generate('luxor.theme' + themeGroup.Name);
+      var newAccessory;
+
+      if (self.accessories[uuid] === undefined) {
+        //self.log('Adding new Luxor light group: ', themeGroup.Name);
+        var accessory = new Accessory(themeGroup.Name, uuid);
+
+        //update context
+        accessory.context.lastDateAdded = self.lastDateAdded;
+        accessory.context.ip_addr = self.ip_addr;
+        accessory.context.themeIndex = themeGroup.ThemeIndex;
+        accessory.context.binaryState = themeGroup.OnOff;
+        accessory.context.status = 'new';
+
+        newAccessory = new luxorTheme(accessory, self.log, Homebridge, controller);
+
+        self.accessories[uuid] = newAccessory;
+        self.api.registerPlatformAccessories("homebridge-luxor", "Luxor", [newAccessory.accessory]);
+      } else {
+        self.accessories[uuid].accessory.context.lastDateAdded = self.lastDateAdded;
+        self.log.debug('Updated timestamp token on valid theme %s. ', themeGroup.Name);
+      }
+      return uuid;
+    })
+    .then(function(uuid) {
+      return;
+    });
+
+};
+
 LuxorPlatform.prototype.processCachedAccessories = function() {
   var self = this;
   var accessory;
@@ -243,8 +297,8 @@ LuxorPlatform.prototype.processCachedAccessories = function() {
         accessory = new luxorZDLight(self.accessories[uuid], self.log, Homebridge, controller);
       } else if (self.accessories[uuid].context.lightType === 'ZDC') {
         accessory = new luxorZDCLight(self.accessories[uuid], self.log, Homebridge, controller);
-      } else {
-        console.log('WHOA!!! What is this? %s  \n\t %s', uuid, self.accessories[uuid])
+      } else { // theme
+        accessory = new luxorTheme(self.accessories[uuid], self.log, Homebridge, controller);
       }
     }
     self.accessories[uuid] = accessory;
@@ -272,12 +326,11 @@ LuxorPlatform.prototype.didFinishLaunching = function() {
       return self.getControllerGroupList().bind(this);
     })
     .then(function() {
+      return self.getControllerThemeList().bind(this);
+    })
+    .then(function() {
       return self.removeOphanedAccessories();
     })
-    // .then(function() {
-    //     // run this now to get brightness of any cached accessories, and start the polling interval
-    //     return self.pollingBrightness();
-    // })
     .then(function() {
       return self.log('Finished initializing');
     })

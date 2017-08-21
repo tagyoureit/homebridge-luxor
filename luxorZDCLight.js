@@ -153,7 +153,7 @@ var LuxorAccessory = function(accessory, log, Homebridge, Controller) {
             self.accessory.context.color = (250 - self.accessory.context.groupNumber + 1);
             self.log('%s: Copying light palette C%s to color C%s (Hue: %s, Sat: %s)', self.Name, oldC, self.accessory.context.color, desiredHue, desiredSaturation);
             // set the "current" color to the new color
-            return self.colorListSet();
+            return self.colorListSet('identify');
           });
       } else {
         // if we are loading again with no change in color outside of homekit
@@ -189,16 +189,7 @@ LuxorAccessory.prototype.setPower = function(powerOn, callback) {
     callback();
 
   } else {
-    //   self.accessory.context.binaryState = powerOn ? 1 : 0;
-    //   // self.log.debug("Attempting to set Power for the %s to %s", self.accessory.displayName, self.accessory.context.binaryState == 1 ? "on " : "off");
-    //   if (powerOn === 1) {
-    //     self.accessory.getService(Service.Lightbulb)
-    //       .getCharacteristic(Characteristic.Brightness)
-    //       .updateValue(100);
-    //   } else {
-    //     self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Brightness).updateValue(0);
-    //   }
-    return self.illuminateGroup(callback, powerOn ? 100 : 0, "power"); //set to 0 if we want to turn off, or 50 if we want to turn on.
+    return self.illuminateGroup(callback, powerOn ? 100 : 0, "power"); //set to 0 if we want to turn off, or 100 if we want to turn on.
   }
 };
 
@@ -208,13 +199,6 @@ LuxorAccessory.prototype.getBrightness = function(callback) {
     .then(function() {
       return self.getCurrentState(callback, "brightness");
     })
-    // .then(function() {
-    // if (self.accessory.reachable === false) {
-    //   // this is here because we set cached accessory reachable=false until we update the brightness
-    //   self.accessory.updateReachability(true);
-    // }
-    //   return;
-    // })
     .catch(function(err) {
       self.log.error(self.Name + ': Error Updating Brightness', err);
     });
@@ -222,52 +206,53 @@ LuxorAccessory.prototype.getBrightness = function(callback) {
 
 LuxorAccessory.prototype.setBrightness = function(brightness, callback) {
   var self = this;
-  //
-  // return Promise.resolve()
-  //   .then(function() {
-  //     // self.log.debug("Attempting to Set Brightness for the '%s' to %s", self.accessory.displayName, brightness);
   if (self.accessory.context.brightness === brightness) {
     self.log('Not changing brightness to %s because it is already %s', brightness, self.accessory.context.brightness);
     callback();
-
   } else {
-    return self.groupListEdit()
-      .then(self.illuminateGroup(callback, brightness, "brightness"));
+    // commented out the following so if the color is changed outside of homekit we can change the brightness/power without changing the color
+    // return self.groupListEdit()
+    //   .then(self.illuminateGroup(callback, brightness, "brightness"));
+    return self.illuminateGroup(callback, brightness, "brightness");
   }
-  // })
-  // .catch(function(err) {
-  //   self.log.error(self.Name + ': Error attempting to set brightness.', err);
-  // });
 };
 
 LuxorAccessory.prototype.pollingStatus = function() {
   var self = this;
   self.getCurrentState(function() {}, 'brightness');
   self.getCurrentState(function() {}, 'power');
-  self.getHueSaturation(function() {});
+
+  controller.GroupListGet(self.accessory.context.color)
+  .then(function(info){
+      self.accessory.context.color = info.GroupList[self.accessory.context.groupNumber - 1].Color;
+      return self.getHueSaturation(function() {});
+  });
 
   setTimeout(self.pollingStatus.bind(this), 30 * 1000);
 };
 
 LuxorAccessory.prototype.setHue = function(value, callback) {
   var self = this;
-  if (value !== self.accessory.context.due) {
+//  if (value !== self.accessory.context.due) {
     desiredHue = value;
     self.groupListEdit()
       .then(function() {
         self.log("%s calling colorListSet (from setHue) with value hue:%s", self.Name, value);
       })
       .then(function() {
-        return self.colorListSet();
+        return self.colorListSet('hue', callback);
       })
       .then(function() {
-        callback();
+        //callback();
         return;
+      })
+      .catch(function(err){
+        callback(err);
       });
-  }
-  else {
-    callback();
-  }
+  // }
+  // else {
+  //   callback(null, value);
+  // }
 };
 
 LuxorAccessory.prototype.getHueSaturation = function(callback) {
@@ -289,40 +274,71 @@ LuxorAccessory.prototype.getHueSaturation = function(callback) {
 
 LuxorAccessory.prototype.setSaturation = function(value, callback) {
   var self = this;
-  if (value !== self.accessory.context.saturation) {
+  //if (value !== self.accessory.context.saturation) {
     desiredSaturation = value;
     self.groupListEdit()
       .then(function() {
         self.log("%s calling colorListSet (from setSaturation) with value:%s", self.Name, value);
       })
       .then(function() {
-        return self.colorListSet();
+        return self.colorListSet('saturation', callback);
       })
       .then(function() {
-        callback();
+        //callback(null, value);
         return;
+      })
+      .catch(function(err){
+        callback(err);
       });
-  }
-  else {
-    callback();
-  }
+//  }
+  //else {
+  //  callback(null, value);
+  //}
 
 };
 
 
+var callback_s; // saturation callback
+var callback_h; // hue callback
 
-LuxorAccessory.prototype.colorListSet = function() {
+LuxorAccessory.prototype.colorListSet = function(whichcall, callback) {
   var self = this;
+  self.log('whichcall: ', whichcall)
+  console.log('which')
+  if (whichcall === 'hue'){
+    callback_h = callback;
+  }
+  else if (whichcall === 'saturation'){
+    callback_s = callback;
+  }
+
   if (desiredHue === -1 || desiredSaturation === -1) {
+    self.log('setting timer')
     desiredHueSatTimer = setTimeout(function() {
+      callback_h = null;
+      callback_s = null;
       desiredHue = -1;
       desiredSaturation = -1;
-    }, 1000);
+      self.log('timer ran out!')
+    }, 3000);
     return;
   } else {
     clearTimeout(desiredHueSatTimer);
+    self.log('calling hue/color');
+    self.log('callback_h:', callback_h+'');
+    self.log('callback_s:', callback_s+'');
     return controller.ColorListSet(self.accessory.context.color, desiredHue, desiredSaturation)
       .then(function() {
+
+        if (whichcall !== 'identify'){
+          callback_h(null, desiredHue);
+          callback_s(null, desiredSaturation);
+          // reset to null so we don't have stale callbacks
+          callback_h = null;
+          callback_s = null;
+
+        }
+        // per note below, callback's weren't setting value.  so call them directly
         self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Hue).setValue(desiredHue);
         self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Saturation).setValue(desiredSaturation);
         desiredHue = -1;
@@ -334,6 +350,8 @@ LuxorAccessory.prototype.colorListSet = function() {
       })
       .catch(function(err) {
         self.log('Error trying to set the color:', err);
+        callback_h(err);
+        callback_s(err);
       });
   }
 };
