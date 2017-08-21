@@ -152,13 +152,30 @@ LuxorTheme.prototype.illuminateTheme = function(callback, onOff) {
     });
 };
 
+LuxorTheme.prototype.returnTheme = function(info) {
+  var self = this;
+  return Promise.resolve()
+    .then(function() {
+      for (var index in info.ThemeList) {
+        if (info.ThemeList[index].ThemeIndex === self.accessory.context.themeIndex) {
+          return info.ThemeList[index];
+        }
+      }
+    });
+};
+
+
 LuxorTheme.prototype.getCurrentState = function(callback) {
   var self = this;
 
   return controller.ThemeListGet()
     .then(function(info) {
-      if (self.accessory.context.binaryState !== info.ThemeList[self.accessory.context.themeIndex].OnOff) {
-        self.accessory.context.binaryState = info.ThemeList[self.accessory.context.themeIndex].OnOff; // This Luxor array starts at 0.  (Lights start at 1)
+      return self.returnTheme(info);
+    })
+    .then(function(theme) {
+      console.log('return: ' + theme);
+      if (self.accessory.context.binaryState !== theme.OnOff) {
+        self.accessory.context.binaryState = theme.OnOff; // This Luxor array starts at 0.  (Lights start at 1)
         self.log(self.Name + ': Current status of theme %s is %s', self.accessory.displayName, self.accessory.context.binaryState === 1 ? "On" : "Off");
       }
 
@@ -173,7 +190,7 @@ LuxorTheme.prototype.getCurrentState = function(callback) {
     })
     .catch(function(err) {
       callback(err);
-      self.log.error(self.accessory.displayName + ": Not able to connect to the controller.  Error: " + err);
+      self.log.error(self.accessory.displayName + ": Not able to retrieve the theme.  Error: " + err);
     });
 };
 
