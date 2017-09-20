@@ -35,9 +35,22 @@ function LuxorPlatform(log, config, api) {
 
   var self = this;
   self.config = config || {};
+  self.log = log;
 
   self.Name = config.name;
-  self.log = log;
+
+  if (config.removeAccessories) {
+    self.removeAccessories = config.removeAccessories.split(',');
+    self.removeAccessories.forEach(function (el){
+      self.removeAccessories.splice(self.removeAccessories.indexOf(el), 1, el.trim());
+    });
+  }
+  else {
+    self.removeAccessories = [];
+  }
+  self.log('Config.json includes %s accessories to remove.', self.removeAccessories.length);
+
+
 
   self.lastDateAdded = Date.now();
 
@@ -126,7 +139,10 @@ LuxorPlatform.prototype.getControllerThemeList = function() {
   return controller.ThemeListGet()
     .then(function(info) {
       self.log('Found %s themes.', Object.keys(info.ThemeList).length);
+      info.ThemeList.push({ Name: 'Illuminate all lights', ThemeIndex: 25, OnOff: 0 });
+      info.ThemeList.push({ Name: 'Extinguish all lights', ThemeIndex: 24, OnOff: 0 });
       for (var i in info.ThemeList) {
+        self.log('what is in a theme? ', info.ThemeList[i])
         addAccessoryFactory.push(self.addThemeAccessory(info.ThemeList[i], 'new'));
       }
       return Promise.all(addAccessoryFactory);
@@ -146,12 +162,12 @@ LuxorPlatform.prototype.removeAccessory = function(uuid) {
       return self.api.unregisterPlatformAccessories("homebridge-luxor", "Luxor", [self.accessories[uuid].accessory]);
     })
     .then(function() {
-      self.log('Removed orphaned accessory %s', self.accessories[uuid].accessory.displayName);
+      self.log('Removed accessory %s', self.accessories[uuid].accessory.displayName);
       self.accessories.splice(self.accessories[uuid], 1);
       return;
     })
     .catch(function(err) {
-      self.log.error('Error removing accessory.', err)
+      self.log.error('Error removing accessory.', err);
     });
 };
 
@@ -190,6 +206,64 @@ LuxorPlatform.prototype.removeOphanedAccessories = function() {
           self.removeAccessory(self.accessories[el].accessory.UUID);
         }
       }
+      return;
+    });
+};
+
+
+LuxorPlatform.prototype.removeRequestedAccessories = function() {
+  var self = this;
+  /*  Removal of accessories based on config values    */
+  return Promise.resolve()
+    .then(function() {
+      self.log('REMOVE self.removeAccessories.length: %s', self.removeAccessories.length);
+
+      if (self.removeAccessories.length > 0) {
+        self.log('self.removeAccessories[0].toLowerCase === all: ', self.removeAccessories[0].toLowerCase() === 'all');
+        if (self.removeAccessories[0].toLowerCase() === 'all') {
+          for (var el in self.accessories) {
+
+            // cached element does NOT exist in current light Theme
+            self.log('Removing accessory based on _all_ value %s', self.accessories[el].accessory.displayName);
+            self.removeAccessory(self.accessories[el].accessory.UUID);
+            self.removeAccessories.splice(self.removeAccessories.indexOf(el),1);
+
+          }
+        } else if (self.removeAccessories[0].toLowerCase() !== 'all'){
+          var didRemove;
+          while (self.removeAccessories.length>0) {
+            didRemove = false;
+            self.log(' REMOVE array length at beginning: ', self.removeAccessories.length)
+            self.log('REMOVE comparing item: %s in ', self.removeAccessories[0], self.removeAccessories);
+            for (var existsEl in self.accessories) {
+              self.log('REMOVE comparing %s to %s.', self.removeAccessories[0].toLowerCase(), self.accessories[existsEl].accessory.displayName.toLowerCase());
+              if (self.removeAccessories[0].toLowerCase() === self.accessories[existsEl].accessory.displayName.toLowerCase()) {
+                self.log('Removing accessory based on value %s', self.removeAccessories[0]);
+                self.removeAccessory(self.accessories[existsEl].accessory.UUID);
+                self.log('REMOVE Array is: ', self.removeAccessories)
+                self.removeAccessories.splice(0,1);
+                self.log('REMOVE Array after splice is: ', self.removeAccessories)
+                didRemove = true;
+                break;
+              }
+
+
+            }
+            if (didRemove===false) {
+              self.log('Tried to remove [%s] accessory, but it was not found.', self.removeAccessories);
+              self.log('REMOVE Array is: ', self.removeAccessories)
+              self.removeAccessories.splice(0,1);
+              self.log('REMOVE Array after splice is: ', self.removeAccessories)
+
+            }
+            self.log(' REMOVE array length at end: ', self.removeAccessories.length)
+
+          }
+        }
+        self.log('*** Accessories have been removed.  Please use the "" (empty string) in config.json removeAccessories:"" and restart Homebridge. ***')
+        process.exit(0)
+      }
+
       return;
     });
 };
@@ -330,6 +404,9 @@ LuxorPlatform.prototype.didFinishLaunching = function() {
     })
     .then(function() {
       return self.removeOphanedAccessories();
+    })
+    .then(function() {
+      return self.removeRequestedAccessories();
     })
     .then(function() {
       return self.log('Finished initializing');

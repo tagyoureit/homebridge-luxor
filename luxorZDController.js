@@ -45,7 +45,45 @@ function LuxorZDController(ip, log) {
   log.info('Assigning ZD Controller to IP %s', this.ip);
 }
 
+LuxorZDController.prototype.IlluminateAll = function() {
+  // Turn on all lights
+  var self = this;
+  self.log.debug('Turning on all lights');
 
+  var post_options = {
+    url: 'http://' + self.ip + '/IlluminateAll.json',
+    method: 'POST'
+  };
+  return rp(post_options)
+    .then(function(body) {
+      var result = getStatus(JSON.parse(body).Status);
+
+      return result;
+    })
+    .catch(function(err) {
+      self.log.error('was not able to turn on all lights.', err);
+    });
+};
+
+LuxorZDController.prototype.ExtinguishAll = function() {
+  // Turn on all lights
+  var self = this;
+  self.log.debug('Turning of all lights');
+
+  var post_options = {
+    url: 'http://' + self.ip + '/ExtinguishAll.json',
+    method: 'POST'
+  };
+  return rp(post_options)
+    .then(function(body) {
+      var result = getStatus(JSON.parse(body).Status);
+
+      return result;
+    })
+    .catch(function(err) {
+      self.log.error('was not able to turn off all lights.', err);
+    });
+};
 
 LuxorZDController.prototype.GroupListGet = function() {
   // Get the list of light groups from the controller

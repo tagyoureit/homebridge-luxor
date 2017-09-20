@@ -16,6 +16,14 @@ This plug-in enables power and brightness controls for [FX Luminaire Luxor ZD](h
 1. This module will poll the Luxor controller every 30 seconds for color (see note below in known issues on brightness/on/off).  If the color is changed in the Luxor app or controller, it will NOT be indicated here.  However, we will accurately display brightness/on/off.  
 1. If you change any of brightness/color/on/off through HomeKit, all values will be updated in this module.
 
+# Themes
+1. Themes are now added.  They will show up as a switch (instead of a lightbulb).  The way Luxor implements themes is that you can only turn them on (eg the theme has no knowledge if individual lights in the theme are changed after a theme is "set").  Therefor, the switch will illuminate for 5 seconds and then turn itself off.
+1. The two themes "Illuminate All" and "Extinguish All" will be automatically added to your themes.  They will occupy themes 24 and 25.  Please do not use themes 24/25 in your controller.
+
+# Remove accessories
+1.  (beta) There may be occasions (upgrading from the original version of this code) when some accessories will not be removed.  You can remove these by including the line `removeAccessories:"all"` to remove all accessories.  Or, replace "all" with a comma delimited string of the names of any Luxor accessories you want to remove.  Once you remove the accessories Homebridge will exit.  Set the value back to `""` and restart Homebridge.
+
+
 # Known Issues
 1. This module will poll the Luxor controller every 30 seconds for updates to brightness/on/off.  This may appear to have a small delay when reporting a status that is changed outside of HomeKit.
 

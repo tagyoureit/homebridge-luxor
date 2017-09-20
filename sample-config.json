@@ -3,5 +3,6 @@
         {
             "name": "Luxor",
             "platform": "Luxor",
-            "ipAddr": "Your IP Address in the form of xxx.xxx.xxx.xxx"
+            "ipAddr": "Your IP Address in the form of xxx.xxx.xxx.xxx",
+            "removeAccessory": ""
         }

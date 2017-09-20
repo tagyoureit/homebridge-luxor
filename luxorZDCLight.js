@@ -303,8 +303,6 @@ var callback_h; // hue callback
 
 LuxorAccessory.prototype.colorListSet = function(whichcall, callback) {
   var self = this;
-  self.log('whichcall: ', whichcall)
-  console.log('which')
   if (whichcall === 'hue'){
     callback_h = callback;
   }
@@ -313,20 +311,15 @@ LuxorAccessory.prototype.colorListSet = function(whichcall, callback) {
   }
 
   if (desiredHue === -1 || desiredSaturation === -1) {
-    self.log('setting timer')
     desiredHueSatTimer = setTimeout(function() {
       callback_h = null;
       callback_s = null;
       desiredHue = -1;
       desiredSaturation = -1;
-      self.log('timer ran out!')
     }, 3000);
     return;
   } else {
     clearTimeout(desiredHueSatTimer);
-    self.log('calling hue/color');
-    self.log('callback_h:', callback_h+'');
-    self.log('callback_s:', callback_s+'');
     return controller.ColorListSet(self.accessory.context.color, desiredHue, desiredSaturation)
       .then(function() {
 
@@ -411,11 +404,11 @@ LuxorAccessory.prototype.getCurrentState = function(callback, whichcall) {
 
   return controller.GroupListGet()
     .then(function(info) {
-      if (self.accessory.context.brightness !== info.GroupList[self.accessory.context.groupNumber - 1].Intensity) {
+      //if (self.accessory.context.brightness !== info.GroupList[self.accessory.context.groupNumber - 1].Intensity) {
         self.accessory.context.brightness = info.GroupList[self.accessory.context.groupNumber - 1].Intensity; // JS arrays start at 0 while luxor numbering starts at 1
         self.accessory.context.binaryState = self.accessory.context.brightness > 0 ? 1 : 0;
         self.log(self.Name + ': Current %s of light group %s is %s', whichcall, self.accessory.displayName, (whichcall == "brightness" ? self.accessory.context.brightness : (self.accessory.context.binaryState == 1 ? "On" : "Off")));
-      }
+      //}
 
       if (whichcall == "brightness") {
         if (callback!==undefined) callback(null, self.accessory.context.brightness);

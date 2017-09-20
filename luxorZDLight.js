@@ -219,11 +219,11 @@ LuxorAccessory.prototype.getCurrentState = function(callback, whichcall) {
 
   return controller.GroupListGet()
     .then(function(info) {
-      if (self.accessory.context.brightness !== info.GroupList[self.accessory.context.groupNumber - 1].Intensity) {
+      //if (self.accessory.context.brightness !== info.GroupList[self.accessory.context.groupNumber - 1].Intensity) {
         self.accessory.context.brightness = info.GroupList[self.accessory.context.groupNumber - 1].Intensity; // JS arrays start at 0 while luxor numbering starts at 1
         self.accessory.context.binaryState = self.accessory.context.brightness > 0 ? 1 : 0;
-        self.log(self.Name + ': Current %s of light group %s is %s', whichcall, self.accessory.displayName, (whichcall == "brightness" ? self.accessory.context.brightness : (self.accessory.context.binaryState == 1 ? "On" : "Off")));
-      }
+        //self.log(self.Name + ': Current %s of light group %s is %s', whichcall, self.accessory.displayName, (whichcall == "brightness" ? self.accessory.context.brightness : (self.accessory.context.binaryState === 1 ? "On" : "Off")));
+      //}
 
       if (whichcall == "brightness") {
         callback(null, self.accessory.context.brightness);

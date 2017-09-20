@@ -39,13 +39,13 @@ var LuxorTheme = function(accessory, log, Homebridge, Controller) {
     // set the accessory to reachable if plugin can currently process the accessory
     // otherwise set to false and update the reachability later by invoking
     // accessory.updateReachability()
-    //accessory.reachable = true;
+    accessory.reachable = true;
 
     //self.accessory.context.brightness = brightness;
     //self.accessory.context.binaryState = brightness > 0 ? 1 : 0;
 
-    self.accessory.addService(Service.Lightbulb, self.accessory.displayName);
-    self.accessory.getService(Service.Lightbulb)
+    self.accessory.addService(Service.Switch, self.accessory.displayName);
+    self.accessory.getService(Service.Switch)
       .getCharacteristic(Characteristic.On)
       .on('get', self.getPower.bind(this))
       .on('set', self.setPower.bind(this));
@@ -59,8 +59,8 @@ var LuxorTheme = function(accessory, log, Homebridge, Controller) {
   } else {
     // Process cached accessories here
 
-    if (self.accessory.getService(Service.Lightbulb)) {
-      self.accessory.getService(Service.Lightbulb)
+    if (self.accessory.getService(Service.Switch)) {
+      self.accessory.getService(Service.Switch)
         .getCharacteristic(Characteristic.On)
         .on('get', self.getPower.bind(this))
         .on('set', self.setPower.bind(this));
@@ -78,21 +78,21 @@ var LuxorTheme = function(accessory, log, Homebridge, Controller) {
 
     return Promise.resolve()
       .then(function() {
-        self.log(self.Name + ' :Identifying %s.  Lights in theme should flash twice.', accessory.displayName);
-        return self.setPower(1, function() {});
+        self.log(self.Name + ' :Identifying %s.  (Nothing will happen for themes.).', accessory.displayName);
+        //return self.setPower(1, function() {});
       })
-      .delay(3000)
-      .then(function() {
-        return self.setPower(0, function() {});
-      })
-      .delay(3000)
-      .then(function() {
-        return self.setPower(1, function() {});
-      })
-      .delay(3000)
-      .then(function() {
-        return self.setPower(0, function() {});
-      })
+      // .delay(3000)
+      // .then(function() {
+      //   return self.setPower(0, function() {});
+      // })
+      // .delay(3000)
+      // .then(function() {
+      //   return self.setPower(1, function() {});
+      // })
+      // .delay(3000)
+      // .then(function() {
+      //   return self.setPower(0, function() {});
+      // })
       //  .then(function() {
       //      return callback();
       //  })
@@ -100,13 +100,17 @@ var LuxorTheme = function(accessory, log, Homebridge, Controller) {
         self.log.error('Error identifying theme', self.accessory.displayName);
       });
   });
-  self.pollingBrightness();
+  // self.pollingBrightness();
+    self.accessory.getService(Service.Switch).getCharacteristic(Characteristic.On).updateValue(0);
+  
 };
 
 LuxorTheme.prototype.getPower = function(callback) {
   var self = this;
   self.log.debug("Getting power state for: ", self.accessory.displayName);
-  self.getCurrentState(callback);
+  //self.accessory.getService(Service.Switch).getCharacteristic(Characteristic.On);
+  callback(null, self.accessory.context.binaryState);
+  //self.getCurrentState(callback);
 };
 
 LuxorTheme.prototype.setPower = function(powerOn, callback) {
@@ -118,7 +122,9 @@ LuxorTheme.prototype.setPower = function(powerOn, callback) {
   } else {
 
     return self.illuminateTheme(callback, powerOn ? 1 : 0);
+
   }
+
 };
 
 
@@ -132,18 +138,43 @@ LuxorTheme.prototype.pollingBrightness = function() {
 };
 
 
+// LuxorTheme.prototype.fiveSecondTimer = function() {
+//   //var self = this;
+//   console.log("what is this?? ", this);
+//       this.accessory.getService(Service.Switch).getCharacteristic(Characteristic.On).updateValue(0);
+//       this.accessory.context.binaryState = 0;
+//
+// };
+
 LuxorTheme.prototype.illuminateTheme = function(callback, onOff) {
   var self = this;
 
-  return controller.IlluminateTheme(self.accessory.context.themeIndex, onOff)
+  return Promise.resolve()
+    .then(function() {
+      if (self.accessory.context.themeIndex < 24) {
+        return controller.IlluminateTheme(self.accessory.context.themeIndex, onOff);
+      } else if (self.accessory.context.themeIndex === 24) {
+        //all off
+        return controller.ExtinguishAll();
+      } else if (self.accessory.context.themeIndex === 25) {
+        //all on
+        return controller.IlluminateAll();
+      }
+    })
     .then(function(result) {
       self.accessory.context.binaryState = onOff;
 
-      self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.On).updateValue(onOff > 0 ? 1 : 0);
+      self.accessory.getService(Service.Switch).getCharacteristic(Characteristic.On).updateValue(onOff > 0 ? 1 : 0);
+      if (onOff === 1) {
+        setTimeout(function() {
+          self.accessory.getService(Service.Switch).getCharacteristic(Characteristic.On).updateValue(0);
+          self.accessory.context.binaryState = 0;
+        }, 5 * 1000);
+      }
       return result;
     })
     .then(function(result) {
-      callback();
+      callback(null, result);
       return self.log(self.Name + ': Successfully set %s power to %s. %s ', self.accessory.displayName, (onOff === 0 ? "0 (Off)" : "On"), result === "Ok" ? '' : result);
 
     })
@@ -183,7 +214,7 @@ LuxorTheme.prototype.getCurrentState = function(callback) {
       self.log.debug(self.Name + ': Retrieved theme status: %s', self.accessory.context.binaryState);
 
       // homekit wasn't updating the values with just the callback, so explicitly calling these here.
-      self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.On).updateValue(self.accessory.context.binaryState);
+      self.accessory.getService(Service.Switch).getCharacteristic(Characteristic.On).updateValue(self.accessory.context.binaryState);
 
 
       return self.accessory.context.binaryState;
