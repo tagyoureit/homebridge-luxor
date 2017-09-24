@@ -102,7 +102,7 @@ var LuxorTheme = function(accessory, log, Homebridge, Controller) {
   });
   // self.pollingBrightness();
     self.accessory.getService(Service.Switch).getCharacteristic(Characteristic.On).updateValue(0);
-  
+
 };
 
 LuxorTheme.prototype.getPower = function(callback) {

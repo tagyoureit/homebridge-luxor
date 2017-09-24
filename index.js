@@ -142,7 +142,6 @@ LuxorPlatform.prototype.getControllerThemeList = function() {
       info.ThemeList.push({ Name: 'Illuminate all lights', ThemeIndex: 25, OnOff: 0 });
       info.ThemeList.push({ Name: 'Extinguish all lights', ThemeIndex: 24, OnOff: 0 });
       for (var i in info.ThemeList) {
-        self.log('what is in a theme? ', info.ThemeList[i])
         addAccessoryFactory.push(self.addThemeAccessory(info.ThemeList[i], 'new'));
       }
       return Promise.all(addAccessoryFactory);
