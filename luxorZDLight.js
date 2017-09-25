@@ -118,7 +118,7 @@ var LuxorAccessory = function(accessory, log, Homebridge, Controller) {
 
 LuxorAccessory.prototype.getPower = function(callback) {
   var self = this;
-  self.log.debug("Getting power state for: ", self.accessory.displayName);
+  //self.log.debug("Getting power state for: ", self.accessory.displayName);
   self.getCurrentState(callback, "power");
 };
 
@@ -227,10 +227,10 @@ LuxorAccessory.prototype.getCurrentState = function(callback, whichcall) {
 
       if (whichcall == "brightness") {
         callback(null, self.accessory.context.brightness);
-        self.log.debug(self.Name + ': Retrieved %s of light group %s %s: %s', whichcall, self.accessory.context.groupNumber, self.accessory.displayName, self.accessory.context.brightness);
+        //self.log.debug(self.Name + ': Retrieved %s of light group %s %s: %s', whichcall, self.accessory.context.groupNumber, self.accessory.displayName, self.accessory.context.brightness);
       } else if (whichcall == "power") {
         callback(null, self.accessory.context.binaryState);
-        self.log.debug(self.Name + ': Retrieved %s of light group %s %s: %s', whichcall, self.accessory.context.groupNumber, self.accessory.displayName, self.accessory.context.binaryState);
+        //self.log.debug(self.Name + ': Retrieved %s of light group %s %s: %s', whichcall, self.accessory.context.groupNumber, self.accessory.displayName, self.accessory.context.binaryState);
       } else {
         throw new Error(self.accessory.displayName + " Invalid Characteristic: ", whichcall);
       }

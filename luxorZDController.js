@@ -88,7 +88,7 @@ LuxorZDController.prototype.ExtinguishAll = function() {
 LuxorZDController.prototype.GroupListGet = function() {
   // Get the list of light groups from the controller
   var self = this;
-  self.log.debug('Retrieving light groups from controller');
+  //self.log.debug('Retrieving light groups from controller');
 
   var post_options = {
     url: 'http://' + self.ip + '/GroupListGet.json',
@@ -137,7 +137,7 @@ LuxorZDController.prototype.IlluminateGroup = function(groupNumber, desiredInten
 LuxorZDController.prototype.ThemeListGet = function() {
   // Get the list of light groups from the controller
   var self = this;
-  self.log.debug('Retrieving light groups from controller');
+  // self.log.debug('Retrieving themes from controller');
 
   var post_options = {
     url: 'http://' + self.ip + '/ThemeListGet.json',

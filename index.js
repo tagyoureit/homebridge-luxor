@@ -41,11 +41,10 @@ function LuxorPlatform(log, config, api) {
 
   if (config.removeAccessories) {
     self.removeAccessories = config.removeAccessories.split(',');
-    self.removeAccessories.forEach(function (el){
+    self.removeAccessories.forEach(function(el) {
       self.removeAccessories.splice(self.removeAccessories.indexOf(el), 1, el.trim());
     });
-  }
-  else {
+  } else {
     self.removeAccessories = [];
   }
   self.log('Config.json includes %s accessories to remove.', self.removeAccessories.length);
@@ -139,8 +138,16 @@ LuxorPlatform.prototype.getControllerThemeList = function() {
   return controller.ThemeListGet()
     .then(function(info) {
       self.log('Found %s themes.', Object.keys(info.ThemeList).length);
-      info.ThemeList.push({ Name: 'Illuminate all lights', ThemeIndex: 25, OnOff: 0 });
-      info.ThemeList.push({ Name: 'Extinguish all lights', ThemeIndex: 24, OnOff: 0 });
+      info.ThemeList.push({
+        Name: 'Illuminate all lights',
+        ThemeIndex: 25,
+        OnOff: 0
+      });
+      info.ThemeList.push({
+        Name: 'Extinguish all lights',
+        ThemeIndex: 24,
+        OnOff: 0
+      });
       for (var i in info.ThemeList) {
         addAccessoryFactory.push(self.addThemeAccessory(info.ThemeList[i], 'new'));
       }
@@ -154,7 +161,6 @@ LuxorPlatform.prototype.getControllerThemeList = function() {
 
 LuxorPlatform.prototype.removeAccessory = function(uuid) {
   var self = this;
-
   return Promise.resolve()
     .then(function() {
       // remove accessory from Homebridge
@@ -213,54 +219,67 @@ LuxorPlatform.prototype.removeOphanedAccessories = function() {
 LuxorPlatform.prototype.removeRequestedAccessories = function() {
   var self = this;
   /*  Removal of accessories based on config values    */
+  var removeArray = [];
   return Promise.resolve()
     .then(function() {
-      self.log('REMOVE self.removeAccessories.length: %s', self.removeAccessories.length);
+      //self.log('REMOVE self.removeAccessories.length: %s', self.removeAccessories.length);
 
       if (self.removeAccessories.length > 0) {
-        self.log('self.removeAccessories[0].toLowerCase === all: ', self.removeAccessories[0].toLowerCase() === 'all');
+        //self.log('self.removeAccessories[0].toLowerCase === all: ', self.removeAccessories[0].toLowerCase() === 'all');
         if (self.removeAccessories[0].toLowerCase() === 'all') {
           for (var el in self.accessories) {
 
             // cached element does NOT exist in current light Theme
-            self.log('Removing accessory based on _all_ value %s', self.accessories[el].accessory.displayName);
-            self.removeAccessory(self.accessories[el].accessory.UUID);
-            self.removeAccessories.splice(self.removeAccessories.indexOf(el),1);
+            //self.log('Pushing accessory to remove array based on _all_ value %s', self.accessories[el].accessory.displayName);
+            removeArray.push(self.removeAccessory(self.accessories[el].accessory.UUID));
+            self.removeAccessories.splice(self.removeAccessories.indexOf(el), 1);
 
           }
-        } else if (self.removeAccessories[0].toLowerCase() !== 'all'){
+        } else if (self.removeAccessories[0].toLowerCase() !== 'all') {
           var didRemove;
-          while (self.removeAccessories.length>0) {
+          while (self.removeAccessories.length > 0) {
             didRemove = false;
-            self.log(' REMOVE array length at beginning: ', self.removeAccessories.length)
-            self.log('REMOVE comparing item: %s in ', self.removeAccessories[0], self.removeAccessories);
+            //self.log(' REMOVE array length at beginning: ', self.removeAccessories.length);
+            //self.log('REMOVE comparing item: %s in ', self.removeAccessories[0], self.removeAccessories);
             for (var existsEl in self.accessories) {
-              self.log('REMOVE comparing %s to %s.', self.removeAccessories[0].toLowerCase(), self.accessories[existsEl].accessory.displayName.toLowerCase());
+              //self.log('REMOVE comparing %s to %s.', self.removeAccessories[0].toLowerCase(), self.accessories[existsEl].accessory.displayName.toLowerCase());
               if (self.removeAccessories[0].toLowerCase() === self.accessories[existsEl].accessory.displayName.toLowerCase()) {
                 self.log('Removing accessory based on value %s', self.removeAccessories[0]);
-                self.removeAccessory(self.accessories[existsEl].accessory.UUID);
-                self.log('REMOVE Array is: ', self.removeAccessories)
-                self.removeAccessories.splice(0,1);
-                self.log('REMOVE Array after splice is: ', self.removeAccessories)
+                removeArray.push(self.removeAccessory(self.accessories[existsEl].accessory.UUID));
+                self.log('REMOVE Array is: ', self.removeAccessories);
+                self.removeAccessories.splice(0, 1);
+                self.log('REMOVE Array after splice is: ', self.removeAccessories);
                 didRemove = true;
                 break;
               }
 
 
             }
-            if (didRemove===false) {
+            if (didRemove === false) {
               self.log('Tried to remove [%s] accessory, but it was not found.', self.removeAccessories);
-              self.log('REMOVE Array is: ', self.removeAccessories)
-              self.removeAccessories.splice(0,1);
-              self.log('REMOVE Array after splice is: ', self.removeAccessories)
+              //self.log('REMOVE Array is: ', self.removeAccessories);
+              self.removeAccessories.splice(0, 1);
+              //self.log('REMOVE Array after splice is: ', self.removeAccessories);
 
             }
-            self.log(' REMOVE array length at end: ', self.removeAccessories.length)
+
+
+            //self.log(' REMOVE array length at end: ', self.removeAccessories.length);
 
           }
         }
-        self.log('*** Accessories have been removed.  Please use the "" (empty string) in config.json removeAccessories:"" and restart Homebridge. ***')
-        process.exit(0)
+        if (removeArray.length > 0){
+        Promise.all(removeArray)
+          .then(function() {
+            return console.log('Remove accessories in array');
+
+          })
+          .then(function() {
+            self.log('*** Accessories have been removed.  Please use the "" (empty string) in config.json removeAccessories:"" and restart Homebridge. ***');
+            process.exit(0);
+          });
+        }
+
       }
 
       return;
@@ -314,7 +333,7 @@ LuxorPlatform.prototype.addAccessory = function(lightGroup, status) {
         self.api.registerPlatformAccessories("homebridge-luxor", "Luxor", [newAccessory.accessory]);
       } else {
         self.accessories[uuid].accessory.context.lastDateAdded = self.lastDateAdded;
-        self.log.debug('Updated timestamp token on valid accessory %s. ', lightGroup.Name);
+        //self.log.debug('Updated timestamp token on valid accessory %s. ', lightGroup.Name);
       }
       return uuid;
     })
@@ -341,6 +360,7 @@ LuxorPlatform.prototype.addThemeAccessory = function(themeGroup, status) {
         accessory.context.ip_addr = self.ip_addr;
         accessory.context.themeIndex = themeGroup.ThemeIndex;
         accessory.context.binaryState = themeGroup.OnOff;
+        accessory.context.lightType = "theme";
         accessory.context.status = 'new';
 
         newAccessory = new luxorTheme(accessory, self.log, Homebridge, controller);
@@ -349,7 +369,7 @@ LuxorPlatform.prototype.addThemeAccessory = function(themeGroup, status) {
         self.api.registerPlatformAccessories("homebridge-luxor", "Luxor", [newAccessory.accessory]);
       } else {
         self.accessories[uuid].accessory.context.lastDateAdded = self.lastDateAdded;
-        self.log.debug('Updated timestamp token on valid theme %s. ', themeGroup.Name);
+        //self.log.debug('Updated timestamp token on valid theme %s. ', themeGroup.Name);
       }
       return uuid;
     })
@@ -363,14 +383,22 @@ LuxorPlatform.prototype.processCachedAccessories = function() {
   var self = this;
   var accessory;
   for (var uuid in self.accessories) {
-    if (self.controllerList.type === "ZD") {
+    //console.log(self.Name + ": " + JSON.stringify(self.accessories[uuid].context))
+
+    if (self.accessories[uuid].context.lightType === "theme") {
+      // theme
+      accessory = new luxorTheme(self.accessories[uuid], self.log, Homebridge, controller);
+
+    } else if (self.controllerList.type === "ZD") {
       accessory = new luxorZDLight(self.accessories[uuid], self.log, Homebridge, controller);
     } else if (self.controllerList.type === "ZDC") {
       if (self.accessories[uuid].context.lightType === 'ZD') {
         accessory = new luxorZDLight(self.accessories[uuid], self.log, Homebridge, controller);
       } else if (self.accessories[uuid].context.lightType === 'ZDC') {
         accessory = new luxorZDCLight(self.accessories[uuid], self.log, Homebridge, controller);
-      } else { // theme
+      }
+      // remove this eventually.  duplicate of above.
+      else { // theme
         accessory = new luxorTheme(self.accessories[uuid], self.log, Homebridge, controller);
       }
     }

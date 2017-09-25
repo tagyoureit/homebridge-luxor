@@ -107,7 +107,7 @@ var LuxorTheme = function(accessory, log, Homebridge, Controller) {
 
 LuxorTheme.prototype.getPower = function(callback) {
   var self = this;
-  self.log.debug("Getting power state for: ", self.accessory.displayName);
+  //self.log.debug("Getting power state for: ", self.accessory.displayName);
   //self.accessory.getService(Service.Switch).getCharacteristic(Characteristic.On);
   callback(null, self.accessory.context.binaryState);
   //self.getCurrentState(callback);

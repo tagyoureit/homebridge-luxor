@@ -178,7 +178,7 @@ var LuxorAccessory = function(accessory, log, Homebridge, Controller) {
 
 LuxorAccessory.prototype.getPower = function(callback) {
   var self = this;
-  self.log.debug("Getting power state for: ", self.accessory.displayName);
+  //self.log.debug("Getting power state for: ", self.accessory.displayName);
   self.getCurrentState(callback, "power");
 };
 
@@ -266,7 +266,7 @@ LuxorAccessory.prototype.getHueSaturation = function(callback) {
       self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Saturation).updateValue(colors.Sat);
     })
     .then(function() {
-      self.log("%s: Retrieved colors for palette C%s.  Hue: %s Saturation: %s", self.Name, self.accessory.context.color, self.accessory.context.hue, self.accessory.context.saturation);
+      //self.log("%s: Retrieved colors for palette C%s.  Hue: %s Saturation: %s", self.Name, self.accessory.context.color, self.accessory.context.hue, self.accessory.context.saturation);
       callback();
     });
 
@@ -412,10 +412,10 @@ LuxorAccessory.prototype.getCurrentState = function(callback, whichcall) {
 
       if (whichcall == "brightness") {
         if (callback!==undefined) callback(null, self.accessory.context.brightness);
-        self.log.debug(self.Name + ': Retrieved %s of light group %s %s: %s', whichcall, self.accessory.context.groupNumber, self.accessory.displayName, self.accessory.context.brightness);
+        //self.log.debug(self.Name + ': Retrieved %s of light group %s %s: %s', whichcall, self.accessory.context.groupNumber, self.accessory.displayName, self.accessory.context.brightness);
       } else if (whichcall == "power") {
         if (callback!==undefined) callback(null, self.accessory.context.binaryState);
-        self.log.debug(self.Name + ': Retrieved %s of light group %s %s: %s', whichcall, self.accessory.context.groupNumber, self.accessory.displayName, self.accessory.context.binaryState);
+        //self.log.debug(self.Name + ': Retrieved %s of light group %s %s: %s', whichcall, self.accessory.context.groupNumber, self.accessory.displayName, self.accessory.context.binaryState);
       }
       // homekit wasn't updating the values with just the callback, so explicitly calling these here.
       self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.On).updateValue(self.accessory.context.binaryState);
