@@ -1,3 +1,5 @@
+# NOTE: This plugin currently supports the LXZDC model.  It does not support the LXTWO (newer) version.
+
 # homebridge-luxor 2.0.2
 
 This is a PLATFORM module for the [HomeBridge Platform](https://github.com/nfarina/homebridge) to control [FX Luminaire](http://www.FXL.com).  
