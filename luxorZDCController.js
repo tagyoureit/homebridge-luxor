@@ -176,7 +176,7 @@ LuxorZDCController.prototype.ColorListSet = function(color, hue, saturation) {
       if (result === "Ok") {
         return result;
       } else {
-        throw new Error(result);
+        throw new Error(result + " body: " + body);
       }
     })
     .catch(function(err) {
