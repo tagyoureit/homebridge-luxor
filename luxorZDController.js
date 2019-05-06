@@ -66,9 +66,9 @@ LuxorZDController.prototype.IlluminateAll = function() {
 };
 
 LuxorZDController.prototype.ExtinguishAll = function() {
-  // Turn on all lights
+  // Turn off all lights
   var self = this;
-  self.log.debug('Turning of all lights');
+  self.log.debug('Turning off all lights');
 
   var post_options = {
     url: 'http://' + self.ip + '/ExtinguishAll.json',
