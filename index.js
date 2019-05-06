@@ -396,27 +396,24 @@ LuxorPlatform.prototype.processCachedAccessories = function() {
   for (var uuid in self.accessories) {
     //console.log(self.Name + ": " + JSON.stringify(self.accessories[uuid].context))
 
-    if (self.accessories[uuid].context.lightType === "theme") {
-      // theme
-      accessory = new luxorTheme(self.accessories[uuid], self.log, Homebridge, controller);
-
-    } else if (self.controllerList.type === "ZD") {
-      accessory = new luxorZDLight(self.accessories[uuid], self.log, Homebridge, controller);
-    } else if (self.controllerList.type === "ZDC") {
-      if (self.accessories[uuid].context.lightType === 'ZD') {
-        accessory = new luxorZDLight(self.accessories[uuid], self.log, Homebridge, controller);
-      } else if (self.accessories[uuid].context.lightType === 'ZDC') {
-        accessory = new luxorZDCLight(self.accessories[uuid], self.log, Homebridge, controller);
-      }
-      // remove this eventually.  duplicate of above.
-      else { // theme
+    switch(self.accessories[uuid].context.lightType) {
+      case "theme":
         accessory = new luxorTheme(self.accessories[uuid], self.log, Homebridge, controller);
-      }
-    } else {
-      self.log('Unknown accessory on controller of type %s', self.controllerList.type)
+        break;
+      case "ZD":
+        accessory = new luxorZDLight(self.accessories[uuid], self.log, Homebridge, controller);
+        break;
+      case "ZDC":
+        accessory = new luxorZDCLight(self.accessories[uuid], self.log, Homebridge, controller);
+        break;
+      default:
+        error_str = 'Unknown accessory of type ' + self.accessories[uuid].context.lightType;
+        self.log.error(error_str);
+        self.log('  Full context: ' + JSON.stringify(self.accessories[uuid].context));
+        throw new Error(error_str);
     }
-    self.accessories[uuid] = accessory;
 
+    self.accessories[uuid] = accessory;
   }
   return;
 };
