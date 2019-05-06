@@ -10,6 +10,7 @@ var luxorZDLight = require('./luxorZDLight.js');
 var luxorZDCLight = require('./luxorZDCLight.js');
 var luxorZDController = require('./luxorZDController.js');
 var luxorZDCController = require('./luxorZDCController.js');
+var lxtwoController = require('./lxtwoController.js');
 var luxorTheme = require('./luxorTheme.js');
 var controller; // will be assigned to ZD or ZDC controller
 var Promise = require('bluebird');
@@ -101,8 +102,15 @@ LuxorPlatform.prototype.getController = function() {
           self.controllerList.type = 'ZDC';
           self.log('Found Controller named %s of type %s', info.Controller, self.controllerList.type);
           controller = new luxorZDCController(self.ip_addr, self.log);
-
-        }
+        } else if (info.Controller.substring(0, 5) === 'lxtwo') {
+          // "lxtwo", second-gen ZDC
+          self.controllerList.type = 'lxtwo';
+          self.log('Found Controller named %s of type %s', info.Controller, self.controllerList.type);
+          controller = new lxtwoController(self.ip_addr, self.log);
+        } else {
+	  self.log('Found unknown controller named %s of type %s, assuming a ZDC', info.Controller, self.controllerList.type);
+          controller = new luxorZDCController(self.ip_addr, self.log);
+	}
 
         return self.controllerList;
       })
@@ -328,7 +336,10 @@ LuxorPlatform.prototype.addAccessory = function(lightGroup, status) {
             newAccessory = new luxorZDCLight(accessory, self.log, Homebridge, controller);
           }
 
-        }
+        } else {
+          self.log('Unknown light module %s of type %s; assuming ZDC', lightGroup.Name, accessory.context.lightType);
+	  newAccessory = new luxorZDCLight(accessory, self.log, Homebridge, controller);
+	}
         self.accessories[uuid] = newAccessory;
         self.api.registerPlatformAccessories("homebridge-luxor", "Luxor", [newAccessory.accessory]);
       } else {
@@ -401,6 +412,8 @@ LuxorPlatform.prototype.processCachedAccessories = function() {
       else { // theme
         accessory = new luxorTheme(self.accessories[uuid], self.log, Homebridge, controller);
       }
+    } else {
+      self.log('Unknown accessory on controller of type %s', self.controllerList.type)
     }
     self.accessories[uuid] = accessory;
 

@@ -1,4 +1,4 @@
-# NOTE: This plugin currently supports the LXZDC model.  It does not support the LXTWO (newer) version.
+# NOTE: This plugin currently supports the LXZDC model.  Support for the newer LXTWO version is in progress, and only partially functional.
 
 # homebridge-luxor 2.0.2
 
