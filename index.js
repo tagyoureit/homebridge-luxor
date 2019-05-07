@@ -325,7 +325,8 @@ LuxorPlatform.prototype.addAccessory = function(lightGroup, status) {
         if (self.controllerList.type === "ZD") {
           //self.log('Adding %s as ZD module with ZD controller', lightGroup.Name);
           newAccessory = new luxorZDLight(accessory, self.log, Homebridge, controller);
-        } else if (self.controllerList.type === "ZDC") {
+        } else if (self.controllerList.type === "ZDC" ||
+                   self.controllerList.type === "lxtwo") {
           if (accessory.context.lightType === "ZD") {
             // Monochrome fixture
             //self.log('Adding %s as ZD module with ZDC controller', lightGroup.Name);
