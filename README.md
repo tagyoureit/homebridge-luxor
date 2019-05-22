@@ -1,6 +1,11 @@
-# NOTE: This plugin currently supports the LXZDC model.  It does not support the LXTWO (newer) version.
+# NOTE: Experimental Support for LXTWO
+Still need to:
+* Account for new color wheel values 251-260 and DMC control 65535
+* Possibly account for increased themes (25->39)
+* Others(?)
 
-# homebridge-luxor 2.0.2
+
+# homebridge-luxor 3.0.0-Beta
 
 This is a PLATFORM module for the [HomeBridge Platform](https://github.com/nfarina/homebridge) to control [FX Luminaire](http://www.FXL.com).  
 
