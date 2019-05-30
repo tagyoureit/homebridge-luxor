@@ -124,7 +124,7 @@ LuxorPlatform.prototype.getControllerGroupList = function() {
             return Promise.all(addAccessoryFactory);
         })
         .catch(function(err) {
-            self.log.error('was not able to retrieve light groups from controller.', err);
+            self.log.error(`was not able to retrieve light groups from controller.\n${err}\n${err.message}`);
         });
 };
 

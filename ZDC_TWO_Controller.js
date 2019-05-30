@@ -120,7 +120,7 @@ ZDC_ZDTWO_Controller.prototype.GroupListGet = function() {
             return info;
         })
         .catch(function(err) {
-            self.log.error('was not able to retrieve light groups from controller.', err);
+            self.log.error(`was not able to retrieve light groups from controller.  ${err}\n${err.massage}`);
         });
 };
 
