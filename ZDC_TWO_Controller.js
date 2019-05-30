@@ -149,7 +149,7 @@ ZDC_ZDTWO_Controller.prototype.IlluminateGroup = function(groupNumber, desiredIn
             return result;
         })
         .catch(function(err) {
-            throw new Error(`${err} body: ${body}`);
+            throw new Error(`${err} \n${err.message}`);
         });
 };
 
@@ -186,7 +186,7 @@ ZDC_ZDTWO_Controller.prototype.ColorListSet = function(color, hue, saturation) {
             }
         })
         .catch(function(err) {
-            throw new Error(`${err} body: ${body}`);
+            throw new Error(`${err} \n${err.message}`);
         });
 };
 
@@ -225,7 +225,7 @@ ZDC_ZDTWO_Controller.prototype.ColorListGet = function(color) {
             }
         })
         .catch(function(err) {
-            throw new Error(`${err} body: ${body}`);
+            throw new Error(`${err} \n${err.message}`);
         });
 };
 
@@ -259,7 +259,7 @@ ZDC_ZDTWO_Controller.prototype.GroupListEdit = function(name, groupNumber, color
             }
         })
         .catch(function(err) {
-            throw new Error(`${err} body: ${body}`);
+            throw new Error(`${err} \n${err.message}`);
         });
 };
 
@@ -281,7 +281,7 @@ ZDC_ZDTWO_Controller.prototype.ThemeListGet = function() {
             return info;
         })
         .catch(function(err) {
-            self.log.error(`was not able to retrieve light themes from controller. ${err} body: ${body}`);
+            self.log.error(`was not able to retrieve light themes from controller. ${err} \n${err.message}`);
         });
 };
 
@@ -310,6 +310,6 @@ ZDC_ZDTWO_Controller.prototype.IlluminateTheme = function(themeIndex, onOff) {
             return result;
         })
         .catch(function(err) {
-            throw new Error(`${err} body: ${body}`);
+            throw new Error(`${err} \n${err.message}`);
         });
 };
