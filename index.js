@@ -97,7 +97,7 @@ LuxorPlatform.prototype.getController = function() {
                 } else if (info.Controller.substring(0, 5) === 'lxtwo') {
                     self.controllerList.type = 'ZDTWO';
                     self.log('Found Controller named %s of type %s', info.Controller, self.controllerList.type);
-                    controller = new ZDC_TWO_Controller(self.ip_addr, self.log, self.controller.type);
+                    controller = new ZDC_TWO_Controller(self.ip_addr, self.log, self.controllerList.type);
                 } else {
                     self.log('Found unknown controller named %s of type %s, assuming a ZDTWO', info.Controller, self.controllerList.type);
                     controller = new luxorZDCController(self.ip_addr, self.log, 'ZDTWO');
