@@ -105,9 +105,11 @@ ZDC_ZDTWO_Controller.prototype.GroupListGet = function() {
         url: 'http://' + self.ip + '/GroupListGet.json',
         method: 'POST'
     };
+    console.log(`trying to connect to:\n${JSON.stringify(post_options)}`)
     return rp(post_options)
         .then(function(body) {
             var info = JSON.parse(body);
+            console.log(`retrieved groups: ${JSON.parse(body,null,2)}`)
             for (var i in info.GroupList) {
                 info.GroupList[i].GroupNumber = info.GroupList[i].Grp;
                 info.GroupList[i].Intensity = info.GroupList[i].Inten;
@@ -120,7 +122,7 @@ ZDC_ZDTWO_Controller.prototype.GroupListGet = function() {
             return info;
         })
         .catch(function(err) {
-            self.log.error(`was not able to retrieve light groups from controller.  ${err}\n${err.massage}`);
+            self.log.error(`was not able to retrieve light groups from controller.  ${err}\n${err.message}`);
         });
 };
 
