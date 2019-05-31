@@ -9,6 +9,9 @@ var rp = require('request-promise');
 var luxorZDLight = require('./ZD_Light.js');
 var luxorZDCLight = require('./ZDC_Light.js');
 var Promise = require('bluebird');
+var groupList = {} // hold cached results
+var timeoutGroupList; // timeout for GroupListGet
+
 
 module.exports = ZDC_ZDTWO_Controller;
 
@@ -99,31 +102,48 @@ ZDC_ZDTWO_Controller.prototype.GroupListGet = function() {
     // ZDC supporst Groups 1-250, Intensity 0-100, Color 0-260
     // ZDTWO supports Groups 1-250, Intensity 0-100, Color 0-260 & 65535
     var self = this;
-    //self.log.debug('Retrieving light groups from controller');
+    self.log.debug('Retrieving light groups from controller');
+    if (timeoutGroupList) {
+        self.log.debug(`Skipping groupListGet request because we retrieved results in the past 5s already. Returning cached results.`)
+            // in case we send multiple requests but none have returned, set a timer
+        if (!Object.keys(groupList).length) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    return resolve(groupList)
+                }, 1000)
+            })
+        } else {
+            return Promise.resolve(groupList)
+        }
+    } else {
+        timeoutGroupList = setTimeout(() => {
+            timeoutGroupList = null;
+        }, 5000)
+        var post_options = {
+            url: 'http://' + self.ip + '/GroupListGet.json',
+            method: 'POST'
+        };
+        return rp(post_options)
+            .then(function(body) {
+                var info = JSON.parse(body);
+                console.log(`retrieved groups: ${JSON.parse(body,null,2)}`)
+                for (var i in info.GroupList) {
+                    info.GroupList[i].GroupNumber = info.GroupList[i].Grp;
+                    info.GroupList[i].Intensity = info.GroupList[i].Inten;
+                    info.GroupList[i].Color = info.GroupList[i].Colr;
+                }
+                if (info.GroupList[i].Color >= 251) {
 
-    var post_options = {
-        url: 'http://' + self.ip + '/GroupListGet.json',
-        method: 'POST'
-    };
-    console.log(`trying to connect to:\n${JSON.stringify(post_options)}`)
-    return rp(post_options)
-        .then(function(body) {
-            var info = JSON.parse(body);
-            console.log(`retrieved groups: ${JSON.parse(body,null,2)}`)
-            for (var i in info.GroupList) {
-                info.GroupList[i].GroupNumber = info.GroupList[i].Grp;
-                info.GroupList[i].Intensity = info.GroupList[i].Inten;
-                info.GroupList[i].Color = info.GroupList[i].Colr;
-            }
-            if (info.GroupList[i].Color >= 251) {
-
-                self.log.warn(`A color value of ${info.GroupList[i].Color} was found for the color of light group ${info.GroupList[i].GroupNumber}.  Values of 251-260 are ColorWheels and 65535 means the controller is under DMX Group control.  Please select a color 0-250 for this group to work in Homebridge.`)
-            }
-            return info;
-        })
-        .catch(function(err) {
-            self.log.error(`was not able to retrieve light groups from controller.  ${err}\n${err.message}`);
-        });
+                    self.log.warn(`A color value of ${info.GroupList[i].Color} was found for the color of light group ${info.GroupList[i].GroupNumber}.  Values of 251-260 are ColorWheels and 65535 means the controller is under DMX Group control.  Please select a color 0-250 for this group to work in Homebridge.`)
+                }
+                // copy object to groupList
+                Object.assign(groupList, info)
+                return info;
+            })
+            .catch(function(err) {
+                self.log.error(`was not able to retrieve light groups from controller.  ${err}\n${err.message}`);
+            });
+    }
 };
 
 ZDC_ZDTWO_Controller.prototype.IlluminateGroup = function(groupNumber, desiredIntensity) {
