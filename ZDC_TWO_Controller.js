@@ -11,6 +11,10 @@ var luxorZDCLight = require('./ZDC_Light.js');
 var Promise = require('bluebird');
 var groupList = {} // hold cached results
 var timeoutGroupList; // timeout for GroupListGet
+var colorList = {} // hold cached results
+var timeoutColorList; // timeout for ColorListGet
+var themeList = {} // hold cached results
+var timeoutThemeList; // timeout for ThemeListGet
 
 
 module.exports = ZDC_ZDTWO_Controller;
@@ -105,7 +109,8 @@ ZDC_ZDTWO_Controller.prototype.GroupListGet = function() {
     self.log.debug('Retrieving light groups from controller');
     if (timeoutGroupList) {
         self.log.debug(`Skipping groupListGet request because we retrieved results in the past 5s already. Returning cached results.`)
-            // in case we send multiple requests but none have returned, set a timer
+            // in case we send multiple requests but none have returned, set a timer.  
+            // This should only occur for the very first set of requests since subsequent requests can still use the cached results.
         if (!Object.keys(groupList).length) {
             return new Promise((resolve) => {
                 setTimeout(() => {
@@ -126,7 +131,6 @@ ZDC_ZDTWO_Controller.prototype.GroupListGet = function() {
         return rp(post_options)
             .then(function(body) {
                 var info = JSON.parse(body);
-                console.log(`retrieved groups: ${JSON.parse(body,null,2)}`)
                 for (var i in info.GroupList) {
                     info.GroupList[i].GroupNumber = info.GroupList[i].Grp;
                     info.GroupList[i].Intensity = info.GroupList[i].Inten;
@@ -215,40 +219,57 @@ ZDC_ZDTWO_Controller.prototype.ColorListSet = function(color, hue, saturation) {
 ZDC_ZDTWO_Controller.prototype.ColorListGet = function(color) {
     // Same in ZDC/ZDTWO
     var self = this;
-
-    var rpOptions = {
-        url: 'http://' + self.ip + '/ColorListGet.json',
-        method: "POST",
-        headers: {
-            'cache-control': 'no-cache',
-            'content-type': 'application/json'
+    if (timeoutColorList) {
+        self.log.debug(`Skipping colorListGet request because we retrieved results in the past 5s already. Returning cached results.`)
+            // in case we send multiple requests but none have returned, set a timer.  
+            // This should only occur for the very first set of requests since subsequent requests can still use the cached results.
+        if (!Object.keys(colorList).length) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    return resolve(colorList)
+                }, 1000)
+            })
+        } else {
+            return Promise.resolve(colorList)
         }
-    };
-    return rp(rpOptions)
-        .then(function(body) {
-            var result = JSON.parse(body);
-            if (getStatus(result.Status) === "Ok") {
-                var found = false;
-                for (var colorId in result.ColorList) {
-                    if (result.ColorList[colorId].C === color) {
-                        return result.ColorList[colorId];
-                    }
-                }
-                return self.ColorListSet(color, 360, 100)
-                    .then(function() {
-                        return {
-                            "C": color,
-                            "Hue": 360,
-                            "Sat": 100
-                        };
-                    });
-            } else {
-                throw new Error(result);
+    } else {
+        timeoutColorList = setTimeout(() => {
+            timeoutColorList = null;
+        }, 5000)
+        var rpOptions = {
+            url: 'http://' + self.ip + '/ColorListGet.json',
+            method: "POST",
+            headers: {
+                'cache-control': 'no-cache',
+                'content-type': 'application/json'
             }
-        })
-        .catch(function(err) {
-            throw new Error(`${err} \n${err.message}`);
-        });
+        };
+        return rp(rpOptions)
+            .then(function(body) {
+                var result = JSON.parse(body);
+                if (getStatus(result.Status) === "Ok") {
+                    var found = false;
+                    for (var colorId in result.ColorList) {
+                        if (result.ColorList[colorId].C === color) {
+                            return result.ColorList[colorId];
+                        }
+                    }
+                    return self.ColorListSet(color, 360, 100)
+                        .then(function() {
+                            return {
+                                "C": color,
+                                "Hue": 360,
+                                "Sat": 100
+                            };
+                        });
+                } else {
+                    throw new Error(result);
+                }
+            })
+            .catch(function(err) {
+                throw new Error(`${err} \n${err.message}`);
+            });
+    }
 };
 
 ZDC_ZDTWO_Controller.prototype.GroupListEdit = function(name, groupNumber, color) {
@@ -292,19 +313,36 @@ ZDC_ZDTWO_Controller.prototype.ThemeListGet = function() {
 
     var self = this;
     //self.log.debug('Retrieving themes from controller');
-
-    var post_options = {
-        url: 'http://' + self.ip + '/ThemeListGet.json',
-        method: 'POST'
-    };
-    return rp(post_options)
-        .then(function(body) {
-            var info = JSON.parse(body);
-            return info;
-        })
-        .catch(function(err) {
-            self.log.error(`was not able to retrieve light themes from controller. ${err} \n${err.message}`);
-        });
+    if (timeoutThemeList) {
+        self.log.debug(`Skipping themeListGet request because we retrieved results in the past 5s already. Returning cached results.`)
+            // in case we send multiple requests but none have returned, set a timer.  
+            // This should only occur for the very first set of requests since subsequent requests can still use the cached results.
+        if (!Object.keys(groupList).length) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    return resolve(groupList)
+                }, 1000)
+            })
+        } else {
+            return Promise.resolve(groupList)
+        }
+    } else {
+        timeoutThemeList = setTimeout(() => {
+            timeoutThemeList = null;
+        }, 5000)
+        var post_options = {
+            url: 'http://' + self.ip + '/ThemeListGet.json',
+            method: 'POST'
+        };
+        return rp(post_options)
+            .then(function(body) {
+                var info = JSON.parse(body);
+                return info;
+            })
+            .catch(function(err) {
+                self.log.error(`was not able to retrieve light themes from controller. ${err} \n${err.message}`);
+            });
+    }
 };
 
 ZDC_ZDTWO_Controller.prototype.IlluminateTheme = function(themeIndex, onOff) {
