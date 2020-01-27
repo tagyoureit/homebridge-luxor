@@ -76,7 +76,12 @@ ZDC_ZDTWO_Controller.prototype.IlluminateAll = function() {
             return result;
         })
         .catch(function(err) {
-            self.log.error('was not able to turn on all lights.', err);
+            if (err.error.code === "ECONNRESET"){
+                self.log(`LXTWO: ignore -- error with IlluminateAll: ${err}`)
+            }
+            else {
+                self.log(`was not able to turn on all lights: ${err}`)
+            }
         });
 };
 
@@ -97,7 +102,12 @@ ZDC_ZDTWO_Controller.prototype.ExtinguishAll = function() {
             return result;
         })
         .catch(function(err) {
-            self.log.error('was not able to turn off all lights.', err);
+            if (err.error.code === "ECONNRESET"){
+                self.log(`LXTWO: ignore -- error with ExtinguishAll: ${err}`)
+            }
+            else {
+                self.log(`Unknown error ExtinguishAll: ${err}`)
+            }
         });
 };
 
@@ -132,20 +142,27 @@ ZDC_ZDTWO_Controller.prototype.GroupListGet = function() {
             .then(function(body) {
                 var info = JSON.parse(body);
                 for (var i in info.GroupList) {
-                    info.GroupList[i].GroupNumber = info.GroupList[i].Grp;
-                    info.GroupList[i].Intensity = info.GroupList[i].Inten;
-                    info.GroupList[i].Color = info.GroupList[i].Colr;
+                    if (info.GroupList[i].Color >= 251) {
+                        self.log.warn(`A color value of ${info.GroupList[i].Color} was found for the color of light group ${info.GroupList[i].GroupNumber}.  Values of 251-260 are ColorWheels and 65535 means the controller is under DMX Group control.  Please select a color 0-250 for this group to work in Homebridge.`)
+                    }
+                    else {
+                        info.GroupList[i].GroupNumber = info.GroupList[i].Grp;
+                        info.GroupList[i].Intensity = info.GroupList[i].Inten;
+                        info.GroupList[i].Color = info.GroupList[i].Colr;
+                    }
                 }
-                if (info.GroupList[i].Color >= 251) {
-
-                    self.log.warn(`A color value of ${info.GroupList[i].Color} was found for the color of light group ${info.GroupList[i].GroupNumber}.  Values of 251-260 are ColorWheels and 65535 means the controller is under DMX Group control.  Please select a color 0-250 for this group to work in Homebridge.`)
-                }
+                
                 // copy object to groupList
                 Object.assign(groupList, info)
                 return info;
             })
             .catch(function(err) {
-                self.log.error(`was not able to retrieve light groups from controller.  ${err}\n${err.message}`);
+                if (err.error.code === "ECONNRESET"){
+                    self.log(`LXTWO: ignore -- error with GroupListGet: ${err}`)
+                }
+                else {
+                    self.log(`was not able to get GroupListGet: ${err}`)
+                }
             });
     }
 };
@@ -173,9 +190,15 @@ ZDC_ZDTWO_Controller.prototype.IlluminateGroup = function(groupNumber, desiredIn
             var result = getStatus(JSON.parse(body).Status);
 
             return result;
+            
         })
         .catch(function(err) {
-            throw new Error(`${err} \n${err.message}`);
+            if (err.error.code === "ECONNRESET"){
+                self.log(`LXTWO: ignore -- error with IlluminateGroup: ${err}`)
+            }
+            else {
+                self.log(`Unknown Error in IlluminateGroup: ${err}`)
+            }
         });
 };
 
@@ -208,11 +231,16 @@ ZDC_ZDTWO_Controller.prototype.ColorListSet = function(color, hue, saturation) {
             if (result === "Ok") {
                 return result;
             } else {
-                throw new Error(result);
+                self.log(`Controller did not receive OK response.  Response=${result}`)
             }
         })
         .catch(function(err) {
-            throw new Error(`${err} \n${err.message}`);
+            if (err.error.code === "ECONNRESET"){
+                self.log(`LXTWO: ignore -- error with ColorListSet: ${err}`)
+            }
+            else {
+                self.log(`was not able to run ColorListSet: ${err}`)
+            }
         });
 };
 
@@ -263,11 +291,16 @@ ZDC_ZDTWO_Controller.prototype.ColorListGet = function(color) {
                             };
                         });
                 } else {
-                    throw new Error(result);
+                    self.log(`Did not get expected result in ColorListGet: ${result}`)
                 }
             })
             .catch(function(err) {
-                throw new Error(`${err} \n${err.message}`);
+                if (err.error.code === "ECONNRESET"){
+                    self.log(`LXTWO: ignore -- error with ColorListGet: ${err}`)
+                }
+                else {
+                    self.log(`was not able to run ColorListGet: ${err}`)
+                }
             });
     }
 };
@@ -298,11 +331,16 @@ ZDC_ZDTWO_Controller.prototype.GroupListEdit = function(name, groupNumber, color
             if (result === "Ok") {
                 return result;
             } else {
-                throw new Error(result);
+                self.log(`Did not get expected result in GroupListEdit: ${result}`)
             }
         })
         .catch(function(err) {
-            throw new Error(`${err} \n${err.message}`);
+            if (err.error.code === "ECONNRESET"){
+                self.log(`LXTWO: ignore -- error with GroupListEdit: ${err}`)
+            }
+            else {
+                self.log(`was not able to run GroupListEdit: ${err}`)
+            }
         });
 };
 
@@ -340,7 +378,12 @@ ZDC_ZDTWO_Controller.prototype.ThemeListGet = function() {
                 return info;
             })
             .catch(function(err) {
-                self.log.error(`was not able to retrieve light themes from controller. ${err} \n${err.message}`);
+                if (err.error.code === "ECONNRESET"){
+                    self.log(`LXTWO: ignore -- error with ThemeListGet: ${err}`)
+                }
+                else {
+                    self.log(`was not able to run ThemeListGet: ${err}`)
+                }
             });
     }
 };
@@ -370,6 +413,11 @@ ZDC_ZDTWO_Controller.prototype.IlluminateTheme = function(themeIndex, onOff) {
             return result;
         })
         .catch(function(err) {
-            throw new Error(`${err} \n${err.message}`);
+            if (err.error.code === "ECONNRESET"){
+                self.log(`LXTWO: ignore -- error with IlluminateTheme: ${err}`)
+            }
+            else {
+                self.log(`was not able to run IlluminateTheme: ${err}`)
+            }
         });
 };

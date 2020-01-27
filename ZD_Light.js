@@ -2,40 +2,40 @@
 "use strict";
 
 
-var rp = require('request-promise');
-var Promise = require('bluebird');
+var rp=require('request-promise');
+var Promise=require('bluebird');
 var Accessory, Characteristic, Service, UUIDGen, homebridge, controller;
 
-var ZD_Light = function(accessory, log, Homebridge, Controller) {
+var ZD_Light=function(accessory, log, Homebridge, Controller) {
 
-    var self = this;
+    var self=this;
 
-    homebridge = Homebridge;
-    controller = Controller;
+    homebridge=Homebridge;
+    controller=Controller;
 
     // Accessory must be created from PlatformAccessory Constructor
-    Accessory = homebridge.platformAccessory;
+    Accessory=homebridge.platformAccessory;
 
     // Service and Characteristic are from hap-nodejs
-    Characteristic = homebridge.hap.Characteristic;
-    Service = homebridge.hap.Service;
-    UUIDGen = homebridge.hap.uuid;
+    Characteristic=homebridge.hap.Characteristic;
+    Service=homebridge.hap.Service;
+    UUIDGen=homebridge.hap.uuid;
 
-    self.Name = 'ZD Accessory ' + accessory.displayName;
+    self.Name='ZD Accessory '+accessory.displayName;
 
-    self.accessory = accessory;
-    self.log = log;
+    self.accessory=accessory;
+    self.log=log;
 
     // Plugin can save context on accessory
     // To help restore accessory in configureAccessory()
     //self.accessory.context.ip_addr = ip_addr;
     //self.accessory.context.groupNumber = group;
 
-    self.log(self.Name + ': initializing %s ZD light %s', self.accessory.context.status, self.accessory.displayName);
+    self.log(self.Name+': initializing %s ZD light %s', self.accessory.context.status, self.accessory.displayName);
 
 
     // Make sure you provided a name for service otherwise it may not visible in some HomeKit apps.
-    if (self.accessory.context.status === 'new') {
+    if(self.accessory.context.status==='new') {
         // set the accessory to reachable if plugin can currently process the accessory
         // otherwise set to false and update the reachability later by invoking
         // accessory.updateReachability()
@@ -59,15 +59,15 @@ var ZD_Light = function(accessory, log, Homebridge, Controller) {
             .setCharacteristic(Characteristic.Manufacturer, "Luxor")
             .setCharacteristic(Characteristic.Model, "ZD");
 
-        self.accessory.context.status = 'current';
+        self.accessory.context.status='current';
     } else {
         // Process cached accessories here
 
         // do not allow accessing of accessory until we finish processing the cached
         // and making sure it is valid
-        accessory.reachable = false;
+        accessory.reachable=false;
 
-        if (self.accessory.getService(Service.Lightbulb)) {
+        if(self.accessory.getService(Service.Lightbulb)) {
             self.accessory.getService(Service.Lightbulb)
                 .getCharacteristic(Characteristic.On)
                 .on('get', self.getPower.bind(this))
@@ -79,7 +79,7 @@ var ZD_Light = function(accessory, log, Homebridge, Controller) {
                 .on('get', self.getBrightness.bind(this));
         }
 
-        self.accessory.context.status = 'current';
+        self.accessory.context.status='current';
     }
 
     self.accessory.on('identify', function(paired, callback) {
@@ -91,7 +91,7 @@ var ZD_Light = function(accessory, log, Homebridge, Controller) {
 
         return Promise.resolve()
             .then(function() {
-                self.log(self.Name + ' :Identifying %s.  Lights should flash twice.', accessory.displayName);
+                self.log(self.Name+' :Identifying %s.  Lights should flash twice.', accessory.displayName);
                 return self.setPower(1, function() {});
             })
             .delay(3000)
@@ -116,16 +116,16 @@ var ZD_Light = function(accessory, log, Homebridge, Controller) {
     self.pollingBrightness();
 };
 
-ZD_Light.prototype.getPower = function(callback) {
-    var self = this;
+ZD_Light.prototype.getPower=function(callback) {
+    var self=this;
     //self.log.debug("Getting power state for: ", self.accessory.displayName);
     self.getCurrentState(callback, "power");
 };
 
-ZD_Light.prototype.setPower = function(powerOn, callback) {
-    var self = this;
-    if (self.accessory.context.binaryState === powerOn) {
-        self.log('Not changing power to %s because it is already %s', powerOn === 1 ? 'On' : 'Off', self.accessory.context.binaryState === 1 ? 'On' : 'Off');
+ZD_Light.prototype.setPower=function(powerOn, callback) {
+    var self=this;
+    if(self.accessory.context.binaryState===powerOn) {
+        self.log('Not changing power to %s because it is already %s', powerOn===1? 'On':'Off', self.accessory.context.binaryState===1? 'On':'Off');
         callback();
 
     } else {
@@ -138,12 +138,12 @@ ZD_Light.prototype.setPower = function(powerOn, callback) {
         //   } else {
         //     self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Brightness).updateValue(0);
         //   }
-        return self.illuminateGroup(callback, powerOn ? 100 : 0, "power"); //set to 0 if we want to turn off, or 50 if we want to turn on.
+        return self.illuminateGroup(callback, powerOn? 100:0, "power"); //set to 0 if we want to turn off, or 50 if we want to turn on.
     }
 };
 
-ZD_Light.prototype.getBrightness = function(callback) {
-    var self = this;
+ZD_Light.prototype.getBrightness=function(callback) {
+    var self=this;
     return Promise.resolve()
         .then(function() {
             return self.getCurrentState(callback, "brightness");
@@ -156,17 +156,17 @@ ZD_Light.prototype.getBrightness = function(callback) {
         //   return;
         // })
         .catch(function(err) {
-            self.log.error(self.Name + ': Error Updating Brightness', err);
+            self.log.error(self.Name+': Error Updating Brightness', err);
         });
 };
 
-ZD_Light.prototype.setBrightness = function(brightness, callback) {
-    var self = this;
+ZD_Light.prototype.setBrightness=function(brightness, callback) {
+    var self=this;
     //
     // return Promise.resolve()
     //   .then(function() {
     //     // self.log.debug("Attempting to Set Brightness for the '%s' to %s", self.accessory.displayName, brightness);
-    if (self.accessory.context.brightness === brightness) {
+    if(self.accessory.context.brightness===brightness) {
         self.log('Not changing brightness to %s because it is already %s', brightness, self.accessory.context.brightness);
         callback();
 
@@ -179,72 +179,81 @@ ZD_Light.prototype.setBrightness = function(brightness, callback) {
     // });
 };
 
-ZD_Light.prototype.pollingBrightness = function() {
-    var self = this;
-    self.getBrightness(function() {
+ZD_Light.prototype.pollingBrightness=function() {
+    var self=this;
+    self.getBrightness(function(err, val) {
+        if(!err) {
+            // homekit wasn't updating the values with just the callback, so explicitly calling these here.
+            self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.On).updateValue(val>0? 1:0);
+            self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Brightness).updateValue(val);
+
+        }
+        else {
+            log.error(`Error with pollingBrightness: ${err}`)
+        }
         // self.log.debug('Polled %s for change in brightness.', self.accessory.displayName);
     });
 
-    setTimeout(self.pollingBrightness.bind(this), 30 * 1000);
+    setTimeout(self.pollingBrightness.bind(this), 30*1000);
 };
 
 
-ZD_Light.prototype.illuminateGroup = function(callback, desiredIntensity, whichcall) {
-    var self = this;
+ZD_Light.prototype.illuminateGroup=function(callback, desiredIntensity, whichcall) {
+    var self=this;
 
     return controller.IlluminateGroup(self.accessory.context.groupNumber, desiredIntensity)
         .then(function(result) {
-            self.accessory.context.brightness = desiredIntensity;
-            self.accessory.context.binaryState = (self.accessory.context.brightness) > 0 ? 1 : 0;
+            self.accessory.context.brightness=desiredIntensity;
+            self.accessory.context.binaryState=(self.accessory.context.brightness)>0? 1:0;
 
-            self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.On).updateValue(desiredIntensity > 0 ? 1 : 0);
+            self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.On).updateValue(desiredIntensity>0? 1:0);
             self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Brightness).updateValue(desiredIntensity);
             return result;
         })
         .then(function(result) {
             callback();
-            if (whichcall === "brightness") {
-                return self.log(self.Name + ': Successfully set %s brightness to %s. %s ', self.accessory.displayName, (desiredIntensity === 0 ? "0 (Off)" : desiredIntensity), result === "Ok" ? '' : result);
+            if(whichcall==="brightness") {
+                return self.log(self.Name+': Successfully set %s brightness to %s. %s ', self.accessory.displayName, (desiredIntensity===0? "0 (Off)":desiredIntensity), result==="Ok"? '':result);
             } else {
-                return self.log(self.Name + ': Successfully set %s power to %s. %s ', self.accessory.displayName, (desiredIntensity === 0 ? "0 (Off)" : "On"), result === "Ok" ? '' : result);
+                return self.log(self.Name+': Successfully set %s power to %s. %s ', self.accessory.displayName, (desiredIntensity===0? "0 (Off)":"On"), result==="Ok"? '':result);
             }
         })
         .catch(function(err) {
-            throw new Error(self.accessory.displayName + " Crash! Error calling controller.IlluminateGroup for group %s with intesity %s: ", self.accessory.context.groupNumber, desiredIntensity, err);
+            throw new Error(`${self.accessory.displayName} - Crash! Error calling controller.IlluminateGroup for group ${self.accessory.context.groupNumber} with intesity ${desiredIntensity}: ${err}`);
         });
 };
 
-ZD_Light.prototype.getCurrentState = function(callback, whichcall) {
-    var self = this;
+ZD_Light.prototype.getCurrentState=function(callback, whichcall) {
+    var self=this;
 
     return controller.GroupListGet()
         .then(function(info) {
             //if (self.accessory.context.brightness !== info.GroupList[self.accessory.context.groupNumber - 1].Intensity) {
-            self.accessory.context.brightness = info.GroupList[self.accessory.context.groupNumber - 1].Intensity; // JS arrays start at 0 while luxor numbering starts at 1
-            self.accessory.context.binaryState = self.accessory.context.brightness > 0 ? 1 : 0;
+            self.accessory.context.brightness=info.GroupList[self.accessory.context.groupNumber-1].Intensity; // JS arrays start at 0 while luxor numbering starts at 1
+            self.accessory.context.binaryState=self.accessory.context.brightness>0? 1:0;
             //self.log(self.Name + ': Current %s of light group %s is %s', whichcall, self.accessory.displayName, (whichcall == "brightness" ? self.accessory.context.brightness : (self.accessory.context.binaryState === 1 ? "On" : "Off")));
             //}
 
-            if (whichcall == "brightness") {
+            if(whichcall=="brightness") {
                 callback(null, self.accessory.context.brightness);
                 //self.log.debug(self.Name + ': Retrieved %s of light group %s %s: %s', whichcall, self.accessory.context.groupNumber, self.accessory.displayName, self.accessory.context.brightness);
-            } else if (whichcall == "power") {
+            } else if(whichcall=="power") {
                 callback(null, self.accessory.context.binaryState);
                 //self.log.debug(self.Name + ': Retrieved %s of light group %s %s: %s', whichcall, self.accessory.context.groupNumber, self.accessory.displayName, self.accessory.context.binaryState);
             } else {
-                throw new Error(self.accessory.displayName + " Invalid Characteristic: ", whichcall);
+                throw new Error(self.accessory.displayName+" Invalid Characteristic: ", whichcall);
             }
             // homekit wasn't updating the values with just the callback, so explicitly calling these here.
-            self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.On).updateValue(self.accessory.context.binaryState);
-            self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Brightness).updateValue(self.accessory.context.brightness);
+            // self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.On).updateValue(self.accessory.context.binaryState);
+            // self.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Brightness).updateValue(self.accessory.context.brightness);
 
 
             return self.accessory.context.binaryState;
         })
         .catch(function(err) {
             callback(err);
-            self.log.error(self.accessory.displayName + ": Not able to connect to the controller.  Error: " + err);
+            self.log.error(self.accessory.displayName+": Not able to connect to the controller.  Error: "+err);
         });
 };
 
-module.exports = ZD_Light;
+module.exports=ZD_Light;
