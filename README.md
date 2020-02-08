@@ -1,11 +1,5 @@
-# NOTE: Experimental Support for LXTWO
-Still need to:
-* Account for new color wheel values 251-260 and DMC control 65535
-* Possibly account for increased themes (25->39)
-* Others(?)
 
-
-# homebridge-luxor 3.0.0-Beta
+# homebridge-luxor 3.0.0
 
 This is a PLATFORM module for the [HomeBridge Platform](https://github.com/nfarina/homebridge) to control [FX Luminaire](http://www.FXL.com).  
 
@@ -22,6 +16,11 @@ This plug-in enables power and brightness controls for [FX Luminaire Luxor ZD](h
 1. The first time you load this module it will copy the current color palette values (hue and saturation) to the aforementioned new groups.
 1. This module will poll the Luxor controller every 30 seconds for color (see note below in known issues on brightness/on/off).  If the color is changed in the Luxor app or controller, it will NOT be indicated here.  However, we will accurately display brightness/on/off.  
 1. If you change any of brightness/color/on/off through HomeKit, all values will be updated in this module.
+
+# NOTE: Experimental Support for LXTWO
+Still need to:
+- Account for new color wheel values 251-260 and DMC control 65535
+- Possibly account for increased themes (25->39)
 
 # Themes
 1. Themes are now added.  They will show up as a switch (instead of a lightbulb).  The way Luxor implements themes is that you can only turn them on (eg the theme has no knowledge if individual lights in the theme are changed after a theme is "set").  Therefor, the switch will illuminate for 5 seconds and then turn itself off.
