@@ -9,7 +9,7 @@ var rp = require('request-promise');
 var ZD_Light = require('./ZD_Light');
 var ZDC_Light = require('./ZDC_Light');
 var ZD_Controller = require('./ZD_Controller');
-var ZDC_TWO_Controller = require('./ZDC_TWO_Controller');
+var ZDC_ZDTWO_Controller = require('./ZDC_ZDTWO_Controller');
 var Theme = require('./Theme');
 var controller; // will be assigned to ZD or ZDC controller
 var Promise = require('bluebird');
@@ -93,11 +93,11 @@ LuxorPlatform.prototype.getController = function() {
                 } else if (info.Controller.substring(0, 5) === 'lxzdc') {
                     self.controllerList.type = 'ZDC';
                     self.log('Found Controller named %s of type %s', info.Controller, self.controllerList.type);
-                    controller = new ZDC_TWO_Controller(self.ip_addr, self.log, self.controllerList.type);
+                    controller = new ZDC_ZDTWO_Controller(self.ip_addr, self.log, self.controllerList.type);
                 } else if (info.Controller.substring(0, 5) === 'lxtwo') {
                     self.controllerList.type = 'ZDTWO';
                     self.log('Found Controller named %s of type %s', info.Controller, self.controllerList.type);
-                    controller = new ZDC_TWO_Controller(self.ip_addr, self.log, self.controllerList.type);
+                    controller = new ZDC_ZDTWO_Controller(self.ip_addr, self.log, self.controllerList.type);
                 } else {
                     self.log('Found unknown controller named %s of type %s, assuming a ZDTWO', info.Controller, self.controllerList.type);
                     controller = new luxorZDCController(self.ip_addr, self.log, 'ZDTWO');
