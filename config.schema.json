@@ -2,7 +2,8 @@
   "pluginAlias": "Luxor",
   "pluginType": "platform",
   "singular": false,
-  "headerDisplay": "This is a PLATFORM module for the [HomeBridge Platform](https://github.com/nfarina/homebridge) to control [FX Luminaire](http://www.FXL.com).<br /> This plug-in enables power and brightness controls for:<br /> * [FX Luminaire Luxor ZD](http://www.fxl.com/product/power-and-control/luxor-zd) <br /> * [FX Luminaire Luxor ZDC](http://www.fxl.com/product/power-and-control/luxor-zdc) <br /> * [FX Luminaire Luxor LXTWO](https://www.fxl.com/product/transformers/designer/luxor) <br />",
+  "headerDisplay": "This is a PLATFORM module for the [HomeBridge Platform](https://github.com/nfarina/homebridge) to control [FX Luminaire](http://www.FXL.com).  This plug-in enables power and brightness controls for [FX Luminaire Luxor ZD](http://www.fxl.com/product/power-and-control/luxor-zd) and, additionally color, on the [FX Luminaire Luxor ZDC](http://www.fxl.com/product/power-and-control/luxor-zdc).",
+  "footerDisplay": "Optional content to display below the plugin config. Supports markdown.",
   "schema": {
     "type": "object",
     "properties": {
@@ -42,7 +43,7 @@
       "placeholder": "Luxor"
     },
     {
-      "key": "IP Address",
+      "key": "ipAddr",
       "title": "IP Address",
       "placeholder": "192.168.0.1"
     },
