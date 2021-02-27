@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ZD_Controller = void 0;
+const BaseController_1 = require("./BaseController");
+class ZD_Controller extends BaseController_1.BaseController {
+    constructor(controller, log) {
+        super(controller, log);
+    }
+}
+exports.ZD_Controller = ZD_Controller;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiWkRfQ29udHJvbGxlci5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uLy4uL3NyYy9jb250cm9sbGVyL1pEX0NvbnRyb2xsZXIudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7O0FBQUEscURBQW1FO0FBQ25FLE1BQWEsYUFBYyxTQUFRLCtCQUFjO0lBQzdDLFlBQVksVUFBVSxFQUFFLEdBQUc7UUFDdkIsS0FBSyxDQUFDLFVBQVUsRUFBRSxHQUFHLENBQUMsQ0FBQztJQUMzQixDQUFDO0NBQ0o7QUFKRCxzQ0FJQyIsInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IEJhc2VDb250cm9sbGVyLCBJQ29udHJvbGxlclR5cGUgfSBmcm9tIFwiLi9CYXNlQ29udHJvbGxlclwiO1xuZXhwb3J0IGNsYXNzIFpEX0NvbnRyb2xsZXIgZXh0ZW5kcyBCYXNlQ29udHJvbGxlciB7XG4gICAgY29uc3RydWN0b3IoY29udHJvbGxlciwgbG9nKSB7XG4gICAgICAgIHN1cGVyKGNvbnRyb2xsZXIsIGxvZyk7ICAgXG4gICAgfVxufSJdfQ==

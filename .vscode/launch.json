@@ -1,0 +1,58 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "address": "10.0.0.112",
+      "localRoot": "${workspaceFolder}",
+      "name": "Remote copy/build/start & Attach to Remote",
+      "port": 9229,
+      "remoteRoot": "/home/pi/homebridge-luxor",
+      "request": "attach",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "pwa-node",
+      "outFiles": [
+        "${workspaceRoot}/dist/*"
+      ],
+      "sourceMaps": true,
+      "preLaunchTask":  "copy to remote, and start node with debugger"
+    },
+    {
+      "address": "10.0.0.112",
+      "localRoot": "${workspaceFolder}",
+      "name": "Attach to Remote",
+      "port": 9229,
+      "remoteRoot": "/home/pi/homebridge-luxor",
+      "request": "attach",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "pwa-node",
+      "outFiles": [
+        "${workspaceRoot}/dist/*"
+      ],
+      "sourceMaps": true
+    },
+    {
+      "address": "10.0.0.112",
+      "localRoot": "${workspaceFolder}",
+      "name": "Start app on remote and Attach",
+      "port": 9229,
+      "remoteRoot": "/home/pi/homebridge-luxor",
+      "request": "attach",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "pwa-node",
+      "outFiles": [
+        "${workspaceRoot}/dist/*"
+      ],
+      "sourceMaps": true,
+      "preLaunchTask":  "start remote debugger"
+    }
+  ]
+}

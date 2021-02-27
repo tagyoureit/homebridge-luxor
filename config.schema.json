@@ -1,0 +1,40 @@
+{
+  "pluginAlias": "Luxor",
+  "pluginType": "platform",
+  "singular": false,
+  "headerDisplay": "This is a PLATFORM module for the [HomeBridge Platform](https://github.com/nfarina/homebridge) to control [FX Luminaire](http://www.FXL.com).  This plug-in enables power and brightness controls for [FX Luminaire Luxor ZD](http://www.fxl.com/product/power-and-control/luxor-zd) and, additionally color, on the [FX Luminaire Luxor ZDC](http://www.fxl.com/product/power-and-control/luxor-zdc).",
+  "footerDisplay": "Optional content to display below the plugin config. Supports markdown.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "required": true
+      },
+      "ipAddr": {
+        "title": "IP Address",
+        "type": "string",
+        "required": true,
+        "default": "127.0.0.1",
+        "format": "ipv4"
+      },
+      "removeAccessories": {
+        "title": "Remove accessory/accessories",
+        "type": "string",
+        "required": false,
+        "default": "",
+        "description": "Enter specific UUID's separated by a comma to remove individual lights/themes."
+      },
+      "removeAllAccessories": {
+        "title": "Remove accessory/accessories",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Set 'true' to have homebridge-luxor remove all cached accessories before re-adding new ones."
+      }
+    }
+  },
+  "form": null,
+  "display": null
+}
