@@ -10,31 +10,60 @@
       "name": {
         "title": "Name",
         "type": "string",
+        "default": "Luxor",
         "required": true
       },
       "ipAddr": {
         "title": "IP Address",
         "type": "string",
         "required": true,
-        "default": "127.0.0.1",
+        "default": "192.168.0.1",
         "format": "ipv4"
       },
       "removeAccessories": {
-        "title": "Remove accessory/accessories",
+        "title": "Remove specific accessory/accessories",
         "type": "string",
         "required": false,
         "default": "",
-        "description": "Enter specific UUID's separated by a comma to remove individual lights/themes."
+        "description": "Enter specific UUID's separated by a comma to remove individual lights/themes before adding new ones.  After enabling this feature, restart Homebridge, then disable it and restart Homebriged."
       },
       "removeAllAccessories": {
-        "title": "Remove accessory/accessories",
+        "title": "Remove all accessory/accessories",
         "type": "boolean",
         "required": false,
-        "default": "false",
-        "description": "Set 'true' to have homebridge-luxor remove all cached accessories before re-adding new ones."
+        "default": false,
+        "description": "Set 'true' to have homebridge-luxor remove all cached accessories before re-adding new ones.  After enabling this feature, restart Homebridge, then disable it and restart Homebriged."
       }
     }
   },
-  "form": null,
-  "display": null
+  "layout": [
+    {
+      "key": "Name",
+      "title": "Name",
+      "placeholder": "Luxor"
+    },
+    {
+      "key": "IP Address",
+      "title": "IP Address",
+      "placeholder": "192.168.0.1"
+    },
+    {
+      "type": "section",
+      "title": "Panic Button",
+      "expandable": true,
+      "expanded": false,
+      "items": [
+        {
+          "key": "removeAccessories",
+          "type": "string",
+          "notitle": false
+        },
+        {
+          "key": "removeAllAccessories",
+          "type": "boolean",
+          "notitle": false
+        }
+      ]
+    }
+  ]
 }
