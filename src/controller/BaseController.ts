@@ -9,6 +9,8 @@ const axios = require('axios').default;
 export class BaseController {
   protected ip: string;
   public name: string;
+  protected hideGroups: boolean;
+  protected independentColors: boolean;
   protected log: Logger;
   public type: IControllerType;
   protected platform: LuxorPlatform;
@@ -31,6 +33,8 @@ export class BaseController {
     this.name = data.Controller;
     this.type = data.type;
     this.platform = data.platform;
+    this.hideGroups = data.hideGroups;
+    this.independentColors = data.independentColors;
 
     log.info(`Assigning ${this.type} Controller to IP ${this.ip}`);
     // this.updateLights();
@@ -75,6 +79,7 @@ export class BaseController {
       try {
         switch (url) {
           case 'GroupListGet':
+            if (this.hideGroups) return;
             if (typeof this.cacheGroupList !== 'undefined' && Date.now() - this.cacheGroupList < 2000) {
               resolve({ Status: 1, StatusStr: 'Cached', GroupList: this.GroupList });
               return;
@@ -134,6 +139,7 @@ export class BaseController {
     })
   }
   public async GetGroupAsync(group: number): Promise<IGroupList> {
+    if (this.hideGroups) return;
     return new Promise(async (resolve, reject) => {
       try {
         await this.GroupListGetAsync();

@@ -3,8 +3,6 @@
 import { ILightType } from '../lights/ZD_Light';
 import { BaseController, IColorList, IColorListResp, IGroupList, IGroupListResp, IStatus } from './BaseController';
 import Queue from "../Queue";
-import { group } from 'console';
-import { resolve } from 'path';
 
 export class ZDC_Controller extends BaseController {
 

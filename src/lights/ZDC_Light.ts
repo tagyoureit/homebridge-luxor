@@ -130,7 +130,8 @@ export class ZDC_Light extends ZD_Light {
                 let group = await this.controller.GetGroupAsync(this.context.groupNumber);
                 this.context.brightness = group.Intensity;
                 this.context.isOn = this.context.brightness > 0;
-                await this.groupListEditAsync(group.Color);
+                if (this.context.independentColors) await this.groupListEditAsync(group.Color);
+                else { this.context.color = group.Color; }
                 let colors = await this.controller.GetColorAsync(this.context.color)
                 if (colors.Hue !== this.context.hue || colors.Sat !== this.context.saturation) {
                     this.desiredHue = colors.Hue;

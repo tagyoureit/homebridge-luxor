@@ -1,6 +1,6 @@
 {
     "name": "homebridge-luxor",
-    "version": "4.0.3",
+    "version": "4.1.0",
     "description": "Homebridge Plug-in for the FX Luminaire (Luxor) lighting controller ",
     "main": "dist/index.js",
     "scripts": {

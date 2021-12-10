@@ -3,7 +3,7 @@
   "pluginType": "platform",
   "singular": false,
   "headerDisplay": "This is a PLATFORM module for the [HomeBridge Platform](https://github.com/nfarina/homebridge) to control [FX Luminaire](http://www.FXL.com).  This plug-in enables power and brightness controls for [FX Luminaire Luxor ZD](http://www.fxl.com/product/power-and-control/luxor-zd) and, additionally color, on the [FX Luminaire Luxor ZDC](http://www.fxl.com/product/power-and-control/luxor-zdc).",
-  "footerDisplay": "Optional content to display below the plugin config. Supports markdown.",
+  "footerDisplay": "",
   "schema": {
     "type": "object",
     "properties": {
@@ -20,19 +20,27 @@
         "default": "192.168.0.1",
         "format": "ipv4"
       },
+      "hideGroups": {
+        "title": "Hide light groups (show only themes)",
+        "type": "boolean"
+      },
+      "independentColors": {
+        "title": "Use independent colors for each Light Group (legacy behavior)",
+        "type": "boolean"
+      },
       "removeAccessories": {
         "title": "Remove specific accessory/accessories",
         "type": "string",
         "required": false,
         "default": "",
-        "description": "Enter specific UUID's separated by a comma to remove individual lights/themes before adding new ones.  After enabling this feature, restart Homebridge, then disable it and restart Homebriged."
+        "description": "Enter specific UUID's separated by a comma to remove individual lights/themes before adding new ones.  After enabling this feature, restart Homebridge, then disable it and restart Homebrige."
       },
       "removeAllAccessories": {
         "title": "Remove all accessory/accessories",
         "type": "boolean",
         "required": false,
         "default": false,
-        "description": "Set 'true' to have homebridge-luxor remove all cached accessories before re-adding new ones.  After enabling this feature, restart Homebridge, then disable it and restart Homebriged."
+        "description": "Set 'true' to have homebridge-luxor remove all cached accessories before re-adding new ones.  After enabling this feature, restart Homebridge, then disable it and restart Homebrige."
       }
     }
   },
@@ -46,6 +54,14 @@
       "key": "ipAddr",
       "title": "IP Address",
       "placeholder": "192.168.0.1"
+    },
+    {
+      "key": "hideGroups",
+      "placeholder": false
+    },
+    {
+      "key": "independentColors", 
+      "placeholder": false
     },
     {
       "type": "section",

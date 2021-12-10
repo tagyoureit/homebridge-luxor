@@ -86,6 +86,7 @@ export class LuxorPlatform implements DynamicPlatformPlugin {
     }
     async getControllerGroupListAsync() {
         // Get the list of light groups from the controller
+        if (this.config.hideGroups) return;
         try {
             let groupLists = await this.controller.GroupListGetAsync();
             this.log.info(`Retrieved ${groupLists.length} light groups from controller.`);
@@ -146,7 +147,8 @@ export class LuxorPlatform implements DynamicPlatformPlugin {
             groupNumber: lightGroup.GroupNumber,
             brightness: lightGroup.Intensity,
             type: lightGroup.type,
-            isOn: lightGroup.Intensity > 0
+            isOn: lightGroup.Intensity > 0,
+            independentColors: this.config.independentColors
         }
         accessory.context = context;
         LightFactory.createLight(this, accessory);
@@ -262,4 +264,5 @@ export interface IContext {
     saturation?: number;
     themeIndex?: number;
     OnOff?: 0 | 1;
+    independentColors?: boolean;
 }
