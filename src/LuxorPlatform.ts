@@ -66,6 +66,7 @@ export class LuxorPlatform implements DynamicPlatformPlugin {
             let controllerNameData = response.data;
             controllerNameData.ip = this.config.ipAddr;
             controllerNameData.platform = this;
+            controllerNameData.commandTimeout = this.config.commandTimeout;
             if (controllerNameData.Controller.substring(0, 5) === 'luxor') {
                 controllerNameData.type = IControllerType.ZD;
             } else if (controllerNameData.Controller.substring(0, 5) === 'lxzdc') {
@@ -148,7 +149,8 @@ export class LuxorPlatform implements DynamicPlatformPlugin {
             brightness: lightGroup.Intensity,
             type: lightGroup.type,
             isOn: lightGroup.Intensity > 0,
-            independentColors: this.config.independentColors
+            independentColors: this.config.independentColors,
+            commandTimeout: this.config.commandTimeout
         }
         accessory.context = context;
         LightFactory.createLight(this, accessory);
@@ -162,7 +164,8 @@ export class LuxorPlatform implements DynamicPlatformPlugin {
             type: ILightType.THEME,
             isOn: themeGroup.OnOff === 1,
             themeIndex: themeGroup.ThemeIndex,
-            OnOff: themeGroup.OnOff
+            OnOff: themeGroup.OnOff,
+            commandTimeout: this.config.commandTimeout
         }
         accessory.context = context;
         LightFactory.createLight(this, accessory);
@@ -265,4 +268,5 @@ export interface IContext {
     themeIndex?: number;
     OnOff?: 0 | 1;
     independentColors?: boolean;
+    commandTimeout: number;
 }

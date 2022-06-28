@@ -28,6 +28,11 @@
         "title": "Use independent colors for each Light Group (legacy behavior)",
         "type": "boolean"
       },
+      "commandTimeout":{
+        "title": "Adjust the amount of time that the plugin will wait for each HTTP request to the server",
+        "type": "integer",
+        "default": 750
+      },
       "removeAccessories": {
         "title": "Remove specific accessory/accessories",
         "type": "string",
@@ -62,6 +67,10 @@
     {
       "key": "independentColors", 
       "placeholder": false
+    },
+    {
+      "key": "commandTimeout",
+      "placeholder": 750
     },
     {
       "type": "section",

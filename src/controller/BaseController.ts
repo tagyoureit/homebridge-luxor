@@ -20,6 +20,7 @@ export class BaseController {
   protected cacheColorList: number;
   protected ThemeList: IThemeList[];
   protected cacheThemeList: number;
+  protected commandTimeout: number;
   protected callbackList: { UUID: string, type: ILightType, index: number, characteristic: any, fn: (a: number | boolean) => {} }[];
   constructor(data: any, log: any) {
     this.log = log;
@@ -35,6 +36,7 @@ export class BaseController {
     this.platform = data.platform;
     this.hideGroups = data.hideGroups;
     this.independentColors = data.independentColors;
+    this.commandTimeout = data.commandTimeout;
 
     log.info(`Assigning ${this.type} Controller to IP ${this.ip}`);
     // this.updateLights();
@@ -105,7 +107,7 @@ export class BaseController {
           headers: {
             'cache-control': 'no-cache'
           },
-          timeout: 750
+          timeout: this.commandTimeout
         })
         response.data.StatusStr = this.getStatus(response.data.Status);
         if (response.data.StatusStr !== 'Ok' || response.code === 'ETIMEOUT') {
