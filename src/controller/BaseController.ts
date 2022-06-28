@@ -107,7 +107,7 @@ export class BaseController {
           headers: {
             'cache-control': 'no-cache'
           },
-          timeout: this.commandTimeout
+          timeout: this.commandTimeout || 750
         })
         response.data.StatusStr = this.getStatus(response.data.Status);
         if (response.data.StatusStr !== 'Ok' || response.code === 'ETIMEOUT') {
