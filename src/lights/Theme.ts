@@ -20,7 +20,8 @@ export class Theme extends ZD_Light {
     setServices() {
         this.accessory.getService(this.platform.Service.AccessoryInformation)
             .setCharacteristic(this.platform.Characteristic.Manufacturer, "Luxor")
-            .setCharacteristic(this.platform.Characteristic.Model, this.context.type);
+            .setCharacteristic(this.platform.Characteristic.Model, this.context.type)
+            .setCharacteristic(this.platform.Characteristic.SerialNumber, this.accessory.UUID);
         this.service = this.accessory.getService(this.platform.Service.Switch) || this.accessory.addService(this.platform.Service.Switch);
         this.service.setCharacteristic(this.platform.Characteristic.Name, this.accessory.displayName);
 
