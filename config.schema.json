@@ -29,7 +29,7 @@
         "type": "boolean"
       },
       "commandTimeout":{
-        "title": "Adjust the amount of time that the plugin will wait for each HTTP request to the server",
+        "title": "Adjust the amount of time (in milliseconds) that the plugin will wait for each HTTP request to the server",
         "type": "integer",
         "default": 750
       },

@@ -36,7 +36,7 @@ export class BaseController {
     this.platform = data.platform;
     this.hideGroups = data.hideGroups;
     this.independentColors = data.independentColors;
-    this.commandTimeout = data.commandTimeout;
+    this.commandTimeout = data.commandTimeout || 750;
 
     log.info(`Assigning ${this.type} Controller to IP ${this.ip}`);
     // this.updateLights();
@@ -107,7 +107,7 @@ export class BaseController {
           headers: {
             'cache-control': 'no-cache'
           },
-          timeout: this.commandTimeout || 750
+          timeout: this.commandTimeout
         })
         response.data.StatusStr = this.getStatus(response.data.Status);
         if (response.data.StatusStr !== 'Ok' || response.code === 'ETIMEOUT') {
