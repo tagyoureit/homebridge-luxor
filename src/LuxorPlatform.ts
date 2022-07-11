@@ -1,6 +1,6 @@
-import { access } from 'fs';
+const axios = require('axios').default;
+import { AxiosResponse } from 'axios';
 import { API, Characteristic, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
-import { cwd } from 'process';
 
 import { BaseController, IControllerType, IGroupList, IThemeList } from './controller/BaseController';
 import { ControllerFactory } from './controller/ControllerFactory';
@@ -8,7 +8,6 @@ import { LightFactory } from './lights/LightFactory';
 import { Theme } from './lights/Theme';
 import { ILightType } from './lights/ZD_Light';
 
-const axios = require('axios').default;
 
 
 export class LuxorPlatform implements DynamicPlatformPlugin {
@@ -53,16 +52,16 @@ export class LuxorPlatform implements DynamicPlatformPlugin {
         this.log.debug(`Retrieved cached accessory ${accessory.displayName} with UUID ${accessory.UUID}`);
         this.accessories[accessory.UUID] = accessory;
     }
-    async getControllerAsync() {
+    async getControllerAsync():Promise<boolean> {
         // get the name of the controller
 
         this.log.info(this.Name + ": Starting search for controller at: " + this.config.ipAddr);
         try {
             //Search for controllor and make sure we can find it
-            const response = await axios.post(
+            const response:AxiosResponse = await axios.post(
                 `http://${this.config.ipAddr}/ControllerName.json`
             )
-
+            if (response.status !== 200) { this.log.error('Received a status code of ' + response.status + ' when trying to connect to the controller.'); return false; }
             let controllerNameData = response.data;
             controllerNameData.ip = this.config.ipAddr;
             controllerNameData.platform = this;
@@ -79,9 +78,11 @@ export class LuxorPlatform implements DynamicPlatformPlugin {
             }
             this.log.info(`Found Controller named ${controllerNameData.Controller} of type ${controllerNameData.type}.`);
             this.controller = ControllerFactory.createController(controllerNameData, this.log);
+            return true;
         }
         catch (err) {
             this.log.error(this.Name + ' was not able to connect to connect to the controller. ', err);
+            return false;
         };
 
     }
@@ -242,7 +243,12 @@ export class LuxorPlatform implements DynamicPlatformPlugin {
             this.log.error(this.Name + " needs an IP Address in the config file.  Please see sample_config.json.");
         }
         try {
-            await this.getControllerAsync();
+            let isConnected = false;
+            while (!isConnected){
+                isConnected = await this.getControllerAsync();
+                this.log.info(`Unable to connect to Luxor controller.  Waiting 60s and will retry.`)
+                await this.sleep(60*1000);
+            }
             //this.retrieveCachedAccessories();
             await this.getControllerGroupListAsync();
             await this.getControllerThemeListAsync();
