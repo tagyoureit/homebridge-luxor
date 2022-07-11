@@ -71,7 +71,7 @@ class LuxorPlatform {
             return true;
         }
         catch (err) {
-            this.log.error(this.Name + ' was not able to connect to connect to the controller. ', err);
+            this.log.error(this.Name + ' was not able to connect to connect to the controller. ', err.message);
             return false;
         }
         ;
