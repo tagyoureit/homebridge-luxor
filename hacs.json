@@ -1,0 +1,5 @@
+{
+  "name": "Home Assistant Luxor Integration",
+  "render_readme": true,
+  "filename": "dist/LuxorPlatform.js"
+}
