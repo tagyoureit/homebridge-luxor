@@ -106,20 +106,25 @@ export class LuxorPlatform implements DynamicPlatformPlugin {
             let themeLists = await this.controller.ThemeListGetAsync();
             this.log.info(`Retrieved ${themeLists.length} themes from controller.`);
 
-            themeLists.push({
-                Name: 'Illuminate all lights',
-                ThemeIndex: 100,
-                OnOff: 0,
-                isOn: false,
-                type: ILightType.THEME
-            });
-            themeLists.push({
-                Name: 'Extinguish all lights',
-                ThemeIndex: 101,
-                OnOff: 0,
-                isOn: false,
-                type: ILightType.THEME
-            });
+            if (typeof this.config.noAllThemes !== 'undefined' && this.config.noAllThemes){
+                this.log.info(`Not creating Illuminate All and Extinguish All themes per config setting.`);
+            }
+            else {
+                themeLists.push({
+                    Name: 'Illuminate all lights',
+                    ThemeIndex: 100,
+                    OnOff: 0,
+                    isOn: false,
+                    type: ILightType.THEME
+                });
+                themeLists.push({
+                    Name: 'Extinguish all lights',
+                    ThemeIndex: 101,
+                    OnOff: 0,
+                    isOn: false,
+                    type: ILightType.THEME
+                });
+            }
             for (var i in themeLists) {
                 themeLists[i].type = ILightType.THEME;
                 this.currGroupsAndThemes.push(themeLists[i]);

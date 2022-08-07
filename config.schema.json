@@ -24,6 +24,10 @@
         "title": "Hide light groups (show only themes)",
         "type": "boolean"
       },
+      "noAllThemes":{
+        "title": "Do not create the Illuminate All and Extinguish All themes",
+        "type": "boolean"
+      },
       "independentColors": {
         "title": "Use independent colors for each Light Group (legacy behavior)",
         "type": "boolean"
@@ -62,6 +66,10 @@
     },
     {
       "key": "hideGroups",
+      "placeholder": false
+    },
+    {
+      "key": "noAllGroups",
       "placeholder": false
     },
     {
