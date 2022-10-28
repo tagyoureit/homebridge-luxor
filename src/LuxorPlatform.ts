@@ -248,9 +248,7 @@ export class LuxorPlatform implements DynamicPlatformPlugin {
             this.log.error(this.Name + " needs an IP Address in the config file.  Please see sample_config.json.");
         }
         try {
-            let isConnected = false;
-            while (!isConnected){
-                isConnected = await this.getControllerAsync();
+            while (await this.getControllerAsync() == false) {
                 this.log.info(`Unable to connect to Luxor controller.  Waiting 60s and will retry.`)
                 await this.sleep(60*1000);
             }

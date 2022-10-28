@@ -33,21 +33,18 @@ export class ZDC_Light extends ZD_Light {
     }
 
     getHue(callback: CharacteristicGetCallback): void {
-        try {
-            this.controller.GetColorAsync(this.context.color).then(colors => {
-                this.context.hue = colors.Hue;
-                // shouldn't need this
-                // this.service.updateCharacteristic(this.platform.Characteristic.Hue, colors.Hue);
-                // this.service.updateCharacteristic(this.platform.Characteristic.Saturation, colors.Sat);
-                callback(null, this.context.hue);
-            })
-        }
-        catch (err) {
+        this.controller.GetColorAsync(this.context.color).then(colors => {
+            this.context.hue = colors.Hue;
+            // shouldn't need this
+            // this.service.updateCharacteristic(this.platform.Characteristic.Hue, colors.Hue);
+            // this.service.updateCharacteristic(this.platform.Characteristic.Saturation, colors.Sat);
+            callback(null, this.context.hue);
+        }).catch((err) => {
             this.log.error(`${this.accessory.displayName} getHue error: ${err}`)
-            callback(HAPStatus.NOT_ALLOWED_IN_CURRENT_STATE, false);
-        }
-
+            callback(HAPStatus.NOT_ALLOWED_IN_CURRENT_STATE, false); 
+        });
     };
+
     setHue(desiredHue: number, callback: CharacteristicSetCallback): void {
         this.desiredHue = desiredHue;
         this.hueCallback = callback;
@@ -55,25 +52,24 @@ export class ZDC_Light extends ZD_Light {
     };
     
     getSaturation(callback: CharacteristicGetCallback): void {
-        try {
-            this.controller.GetColorAsync(this.context.color).then(colors => {
-                this.context.saturation = colors.Sat;
-                // shouldn't need this
-                // this.service.updateCharacteristic(this.platform.Characteristic.Hue, colors.Hue);
-                // this.service.updateCharacteristic(this.platform.Characteristic.Saturation, colors.Sat);
-                callback(null, this.context.saturation);
-            })
-        }
-        catch (err) {
+        this.controller.GetColorAsync(this.context.color).then(colors => {
+            this.context.saturation = colors.Sat;
+            // shouldn't need this
+            // this.service.updateCharacteristic(this.platform.Characteristic.Hue, colors.Hue);
+            // this.service.updateCharacteristic(this.platform.Characteristic.Saturation, colors.Sat);
+            callback(null, this.context.saturation);
+        }).catch((err) => {
             this.log.error(`${this.accessory.displayName} getSaturation error: ${err}`)
-            callback(HAPStatus.NOT_ALLOWED_IN_CURRENT_STATE, false);
-        }
+            callback(HAPStatus.NOT_ALLOWED_IN_CURRENT_STATE, false);   
+        });
     };
+
     setSaturation(desiredSaturation: number, callback: CharacteristicSetCallback): void {
         this.desiredSaturation = desiredSaturation;
         this.satCallback = callback;
         if (typeof this.hueCallback !== 'undefined') setTimeout(() => { this.colorListSetCallbacks() }, 200);
     };
+
     async colorListSet(): Promise<IStatus> {
         try {
             let status = await this.controller.ColorListSetAsync(this.context.color, this.desiredHue, this.desiredSaturation);
@@ -89,23 +85,22 @@ export class ZDC_Light extends ZD_Light {
             this.log.error(`${this.accessory.displayName} colorListSet error: ${err}`)
         };
     }
+
     colorListSetCallbacks(): void {
-        try {
-            this.colorListSet().then(() => {
-                if (typeof this.satCallback === 'function') this.satCallback(null);
-                this.satCallback = undefined;
-                if (typeof this.hueCallback === 'function') this.hueCallback(null);
-                this.hueCallback = undefined;
-            });
-        }
-        catch (err) {
+        this.colorListSet().then(() => {
+            if (typeof this.satCallback === 'function') this.satCallback(null);
+            this.satCallback = undefined;
+            if (typeof this.hueCallback === 'function') this.hueCallback(null);
+            this.hueCallback = undefined;
+        }).catch((err) => {
             this.log.error(`${this.accessory.displayName} colorListSetCallbacks error: ${err}`)
             if (typeof this.satCallback === 'function') this.satCallback(HAPStatus.NOT_ALLOWED_IN_CURRENT_STATE);
             this.satCallback = undefined;
             if (typeof this.hueCallback === 'function') this.hueCallback(HAPStatus.NOT_ALLOWED_IN_CURRENT_STATE);
-            this.hueCallback = undefined;
-        }
+            this.hueCallback = undefined; 
+        });
     }
+
     async groupListEditAsync(currentColor: number): Promise<void> {
         try {
             if (this.context.color === 0) return;
@@ -150,12 +145,14 @@ export class ZDC_Light extends ZD_Light {
             }
         })
     }
+
     setCharacteristics(): void {
         this.service.updateCharacteristic(this.platform.Characteristic.On, typeof this.context.isOn !== 'undefined' ? this.context.isOn : false);
         this.service.updateCharacteristic(this.platform.Characteristic.Brightness, typeof this.context.brightness !== 'undefined' ? this.context.brightness : 0);
         this.service.updateCharacteristic(this.platform.Characteristic.Hue, typeof this.context.hue !== 'undefined' ? this.context.hue : 0);
         this.service.updateCharacteristic(this.platform.Characteristic.Saturation, typeof this.context.saturation !== 'undefined' ? this.context.saturation : 0);
     }
+
     // this method used for callbacks
     callbackHue(hue: number): void {
         if (hue !== this.context.hue && this.context.color !== 0) {
@@ -164,6 +161,7 @@ export class ZDC_Light extends ZD_Light {
             this.service.updateCharacteristic(this.platform.Characteristic.Hue, hue);
         }
     };
+    
     callbackSat(saturation: number): void {
         if (saturation !== this.context.saturation && this.context.color !== 0) {
             this.context.saturation = saturation;

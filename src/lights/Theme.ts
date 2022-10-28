@@ -37,14 +37,12 @@ export class Theme extends ZD_Light {
             await this.illuminateTheme(0);
         })
 
-        try {
-            this.getCurrentStateAsync().then(() => {
-                this.setCharacteristics();
-            });
-        }
-        catch(err){
-            this.log.error(`${this.accessory.displayName} setServices error: ${err}`)
-        }
+        this.getCurrentStateAsync().then(() => {
+            this.setCharacteristics();
+        }).catch((err) => {    
+            this.log.error(`${this.accessory.displayName} setServices error: ${err}`);     
+        });
+        
         // don't register "fake" illumate/extinguish all themes.
         // don't register any themes because we don't care if the controller thinks they are on;
         // we want them to show as 'off' so they can act as a push button

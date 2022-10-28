@@ -41,14 +41,11 @@ export class ZD_Light {
             .on('get', this.getBrightness.bind(this));
             
             this.context.status = 'current';
-            try {
-                this.getCurrentStateAsync().then(() => {
-                    this.setCharacteristics();
-                });
-            }
-            catch(err){
-                this.log.error(`${this.accessory.displayName} setServices error: ${err}`)
-            }
+            this.getCurrentStateAsync().then(() => {
+                this.setCharacteristics();
+            }).catch((err) => {    
+                this.log.error(`${this.accessory.displayName} setServices error: ${err}`)        
+            });
         }
         catch (err){
             this.log.error(`setServices ${err}`)
@@ -71,55 +68,48 @@ export class ZD_Light {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
     getOn(callback: CharacteristicGetCallback): void {
-        try {
-            // this.log.debug("Getting power state for: ", this.accessory.displayName);
-            this.getCurrentStateAsync().then(() => {
-                callback(null, this.context.isOn);
-            });
-        }
-        catch (err) {
+        this.log.debug("Getting power state for: ", this.accessory.displayName);
+
+        this.getCurrentStateAsync().then(() => {
+            callback(null, this.context.isOn);
+        }).catch((err) => {   
             this.log.error(`${this.accessory.displayName} error: ${err}`)
             this.context.isOn = false;
             callback(HAPStatus.NOT_ALLOWED_IN_CURRENT_STATE, false);
-        }
+        });
     }
     setOn(desiredState: boolean, callback: CharacteristicSetCallback): void {
-        try {
-            if (this.context.isOn === desiredState) {
-                this.log.debug('Not changing power to %s because it is already %s', desiredState ? 'On' : 'Off', this.context.isOn ? 'On' : 'Off');
+        if (this.context.isOn === desiredState) {
+            this.log.debug('Not changing power to %s because it is already %s', desiredState ? 'On' : 'Off', this.context.isOn ? 'On' : 'Off');
+            callback(null);
+        } else {
+            this.illuminateGroupAsync(desiredState ? this.context.brightness || 100 : 0).then(() => {
                 callback(null);
-            } else {
-                this.illuminateGroupAsync(desiredState ? this.context.brightness || 100 : 0).then(() => callback(null));
-            }
-        }
-        catch (err) {
-            this.log.error(`${this.accessory.displayName} setOn error: ${err}`)
-            callback(HAPStatus.NOT_ALLOWED_IN_CURRENT_STATE);
+            }).catch((err) => {  
+                this.log.error(`${this.accessory.displayName} setOn error: ${err}`)
+                callback(HAPStatus.NOT_ALLOWED_IN_CURRENT_STATE);
+            });
         }
     }
     getBrightness(callback: CharacteristicGetCallback): void {
-        try {
-            this.getCurrentStateAsync().then(() => { callback(null, this.context.brightness); });
-        }
-        catch (err) {
+        this.getCurrentStateAsync().then(() => {
+            callback(null, this.context.brightness);
+        }).catch((err) => {  
             this.log.error(`${this.accessory.displayName} getBrightness error: ${err}`)
             callback(HAPStatus.NOT_ALLOWED_IN_CURRENT_STATE, false);
-        }
+        });
     }
     setBrightness(desiredBrightness: number, callback: CharacteristicSetCallback): void {
-        try {
-            if (this.context.brightness === desiredBrightness) {
-                this.log.debug('Not changing brightness to %s because it is already %s', desiredBrightness, this.context.brightness);
+        if (this.context.brightness === desiredBrightness) {
+            this.log.debug('Not changing brightness to %s because it is already %s', desiredBrightness, this.context.brightness);
+            callback(null);
+        } else {
+            this.illuminateGroupAsync(desiredBrightness).then(() => {
                 callback(null);
-            } else {
-                this.illuminateGroupAsync(desiredBrightness).then(() => {
-                    callback(null);
-                });
-            }
-        }
-        catch (err) {
-            this.log.error(`${this.accessory.displayName} setBrightness error: ${err}`)
-            callback(HAPStatus.NOT_ALLOWED_IN_CURRENT_STATE, false);
+            }).catch((err) => {  
+                this.log.error(`${this.accessory.displayName} setBrightness error: ${err}`)
+                callback(HAPStatus.NOT_ALLOWED_IN_CURRENT_STATE, false);
+            });
         }
     }
 
