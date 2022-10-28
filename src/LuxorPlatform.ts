@@ -58,9 +58,12 @@ export class LuxorPlatform implements DynamicPlatformPlugin {
         this.log.info(this.Name + ": Starting search for controller at: " + this.config.ipAddr);
         try {
             //Search for controllor and make sure we can find it
-            const response:AxiosResponse = await axios.post(
-                `http://${this.config.ipAddr}/ControllerName.json`
-            )
+            const response = await axios({
+                method: 'post',
+                url: 'http://' + this.config.ipAddr + '/ControllerName.json',
+                timeout: this.config.commandTimeout || 750
+              });
+              
             if (response.status !== 200) { this.log.error('Received a status code of ' + response.status + ' when trying to connect to the controller.'); return false; }
             let controllerNameData = response.data;
             controllerNameData.ip = this.config.ipAddr;
