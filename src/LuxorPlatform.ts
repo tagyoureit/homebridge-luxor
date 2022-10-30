@@ -1,4 +1,5 @@
 const axios = require('axios').default;
+
 import { AxiosResponse } from 'axios';
 import { API, Characteristic, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
 
@@ -58,7 +59,7 @@ export class LuxorPlatform implements DynamicPlatformPlugin {
         this.log.info(this.Name + ": Starting search for controller at: " + this.config.ipAddr);
         try {
             //Search for controllor and make sure we can find it
-            const response = await axios({
+            const response:AxiosResponse = await axios({
                 method: 'post',
                 url: 'http://' + this.config.ipAddr + '/ControllerName.json',
                 timeout: this.config.commandTimeout || 750
