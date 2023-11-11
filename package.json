@@ -23,7 +23,7 @@
     "author": "Russ Goldin",
     "license": "ISC",
     "dependencies": {
-        "axios": "^0.27.2",
+        "axios": "^1.6.0",
         "source-map-support": "^0.5.21"
     },
     "engines": {
